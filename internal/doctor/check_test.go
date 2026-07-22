@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"context"
 	"testing"
 )
 
@@ -23,17 +24,42 @@ func TestCheckTool(t *testing.T) {
 	}
 }
 
-func TestCheckAll(t *testing.T) {
-	tools := []string{"go", "nonexistenttool"}
-	results := CheckAll(tools)
+type fakeCheck struct {
+	name   string
+	result Result
+}
 
-	if len(results) != len(tools) {
-		t.Errorf("CheckAll() returned %d results, want %d", len(results), len(tools))
+func (f fakeCheck) Name() string                   { return f.name }
+func (f fakeCheck) Run(ctx context.Context) Result { return f.result }
+
+func TestRunAll(t *testing.T) {
+	checks := []Check{
+		fakeCheck{name: "go", result: Result{Name: "go", Found: true}},
+		fakeCheck{name: "nonexistenttool", result: Result{Name: "nonexistenttool", Found: false}},
 	}
 
-	for i, tool := range tools {
-		if results[i].Name != tool {
-			t.Errorf("CheckAll() result[%d].Name = %q, want %q", i, results[i].Name, tool)
+	results := RunAll(t.Context(), checks)
+
+	if len(results) != len(checks) {
+		t.Errorf("RunAll() returned %d results, want %d", len(results), len(checks))
+	}
+
+	for i, check := range checks {
+		got := results[i]
+		if got.Duration < 0 {
+			t.Errorf("duration should be non-negative, got %v", results[i].Duration)
 		}
+		got.Duration = 0 // Reset duration for comparison
+		if got != check.(fakeCheck).result {
+			t.Errorf("RunAll() result for check %q = %v, want %v", check.Name(), results[i], check.(fakeCheck).result)
+		}
+	}
+}
+
+func TestDefaultChecks(t *testing.T) {
+	checks := DefaultChecks()
+
+	if len(checks) == 0 {
+		t.Errorf("DefaultChecks() returned no checks")
 	}
 }

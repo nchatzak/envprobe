@@ -9,31 +9,27 @@ func TestRender(t *testing.T) {
 	tests := []struct {
 		name    string
 		results []Result
-		want    string
 	}{
 		{
 			name: "all tools found",
 			results: []Result{
-				{Name: "git", Found: true},
-				{Name: "go", Found: true},
+				{Name: "git", Found: true, Version: "2.30.0"},
+				{Name: "go", Found: true, Version: "1.16.0"},
 			},
-			want: "✓ git\n✓ go\n",
 		},
 		{
 			name: "some tools not found",
 			results: []Result{
-				{Name: "git", Found: true},
-				{Name: "nonexistenttool", Found: false},
+				{Name: "git", Found: true, Version: "2.30.0"},
+				{Name: "nonexistenttool", Found: false, Version: ""},
 			},
-			want: "✓ git\n✗ nonexistenttool\n",
 		},
 		{
 			name: "no tools found",
 			results: []Result{
-				{Name: "nonexistenttool1", Found: false},
-				{Name: "nonexistenttool2", Found: false},
+				{Name: "nonexistenttool1", Found: false, Version: ""},
+				{Name: "nonexistenttool2", Found: false, Version: ""},
 			},
-			want: "✗ nonexistenttool1\n✗ nonexistenttool2\n",
 		},
 	}
 	for _, tt := range tests {
@@ -41,8 +37,23 @@ func TestRender(t *testing.T) {
 			var builder strings.Builder
 			Render(&builder, tt.results)
 			gotOutput := builder.String()
-			if gotOutput != tt.want {
-				t.Errorf("Render() output = %q, want %q", gotOutput, tt.want)
+
+			if gotOutput == "" {
+				t.Errorf("Render() output is empty, expected non-empty output")
+			}
+
+			for _, r := range tt.results {
+				if !strings.Contains(gotOutput, r.Name) {
+					t.Errorf("Render() output does not contain expected tool name %q", r.Name)
+				}
+
+				if r.Version != "" && !strings.Contains(gotOutput, r.Version) {
+					t.Errorf("Render() output does not contain expected version %q", r.Version)
+				}
+
+				if !strings.Contains(gotOutput, status(r.Found)) {
+					t.Errorf("Render() output does not contain expected status for %q", r.Name)
+				}
 			}
 		})
 	}

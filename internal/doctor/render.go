@@ -3,15 +3,22 @@ package doctor
 import (
 	"fmt"
 	"io"
+	"text/tabwriter"
+	"time"
 )
 
 func Render(w io.Writer, results []Result) {
-	for _, result := range results {
-		if result.Found {
-			fmt.Fprintf(w, "✓ %s\n", result.Name)
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	defer tw.Flush()
 
-			continue
-		}
-		fmt.Fprintf(w, "✗ %s\n", result.Name)
+	for _, result := range results {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", status(result.Found), result.Name, result.Version, result.Duration.Round(time.Millisecond))
 	}
+}
+
+func status(found bool) string {
+	if found {
+		return "✓"
+	}
+	return "✗"
 }
