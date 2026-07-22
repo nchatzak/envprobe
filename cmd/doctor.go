@@ -1,11 +1,7 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
+	"github.com/nchatzak/devsetup/internal/doctor"
 
 	"github.com/spf13/cobra"
 )
@@ -13,28 +9,16 @@ import (
 // doctorCmd represents the doctor command
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Check that required developer tools are installed",
+	Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("doctor called")
+		tools := []string{"git", "java", "go", "mvn", "docker", "node", "npm", "python"}
+
+		results := doctor.CheckAll(tools)
+		doctor.Render(cmd.OutOrStdout(), results)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(doctorCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// doctorCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// doctorCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
