@@ -3,6 +3,7 @@ package doctor
 import (
 	"context"
 	"os/exec"
+	"sync"
 	"time"
 )
 
@@ -59,15 +60,22 @@ type Result struct {
 	Duration time.Duration
 }
 
-func RunAll(ctx context.Context, checks []Check) []Result {
-	results := make([]Result, 0, len(checks))
-	for _, check := range checks {
-		start := time.Now()
-		result := check.Run(ctx)
-		result.Duration = time.Since(start)
-		results = append(results, result)
-	}
+const defaultTimeout = 5 * time.Second
 
+func RunAll(ctx context.Context, checks []Check) []Result {
+	results := make([]Result, len(checks))
+	var wg sync.WaitGroup
+	for i, check := range checks {
+		wg.Go(func() {
+			ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+			defer cancel()
+			start := time.Now()
+			result := check.Run(ctx)
+			result.Duration = time.Since(start)
+			results[i] = result
+		})
+	}
+	wg.Wait()
 	return results
 }
 
