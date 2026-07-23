@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -26,13 +29,21 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	cobra.OnInitialize(initConfig)
+}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.devsetup.yaml)")
+func initConfig() {
+	viper.SetConfigName("devsetup")               // look for devsetup.<ext>
+	viper.SetConfigType("yaml")                   // expect YAML
+	viper.AddConfigPath(".")                      // look for config in the current directory
+	viper.AddConfigPath("$HOME")                  // then home
+	viper.AddConfigPath("$HOME/.config/devsetup") // then user config dir
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok {
+			fmt.Fprintln(os.Stderr, "config error:", err)
+			os.Exit(1)
+		}
+		// if no config file found, fall through to defaults
+	}
 }

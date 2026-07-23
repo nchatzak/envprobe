@@ -35,3 +35,6 @@ go.work.sum
 # Windows
 Thumbs.db
 Desktop.ini
+
+# Tool specific files
+.devsetup.yaml
