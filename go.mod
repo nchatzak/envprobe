@@ -3,6 +3,7 @@ module github.com/nchatzak/devsetup
 go 1.26.5
 
 require (
+	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 )

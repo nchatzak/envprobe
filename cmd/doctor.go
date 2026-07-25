@@ -16,10 +16,16 @@ var doctorCmd = &cobra.Command{
 		names := viper.GetStringSlice("checks") // retrieve the list of checks from the config file
 		checks := doctor.SelectChecks(doctor.DefaultChecks(), names)
 		results := doctor.RunAll(cmd.Context(), checks)
-		doctor.Render(cmd.OutOrStdout(), results)
+
+		if cmd.Flags().Changed("json") {
+			doctor.RenderJSON(cmd.OutOrStdout(), results)
+		} else {
+			doctor.Render(cmd.OutOrStdout(), results)
+		}
 	},
 }
 
 func init() {
+	doctorCmd.Flags().Bool("json", false, "output results as JSON")
 	rootCmd.AddCommand(doctorCmd)
 }
