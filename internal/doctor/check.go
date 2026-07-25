@@ -60,6 +60,17 @@ type Result struct {
 	Duration time.Duration
 }
 
+// CountFailed reports how many checks did not pass.
+func CountFailed(results []Result) int {
+	count := 0
+	for _, result := range results {
+		if !result.Found {
+			count++
+		}
+	}
+	return count
+}
+
 const defaultTimeout = 5 * time.Second
 
 func RunAll(ctx context.Context, checks []Check) []Result {

@@ -99,3 +99,24 @@ func TestSelectChecks(t *testing.T) {
 		})
 	}
 }
+
+func TestCountFailed(t *testing.T) {
+	tests := []struct {
+		name    string
+		results []Result
+		want    int
+	}{
+		{"no results", []Result{}, 0},
+		{"all found", []Result{{Name: "go", Found: true}, {Name: "git", Found: true}}, 0},
+		{"one not found", []Result{{Name: "go", Found: true}, {Name: "git", Found: false}}, 1},
+		{"all not found", []Result{{Name: "go", Found: false}, {Name: "git", Found: false}}, 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CountFailed(tt.results); got != tt.want {
+				t.Errorf("CountFailed() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

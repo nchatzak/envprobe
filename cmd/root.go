@@ -11,8 +11,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "envprobe",
-	Short: "Development environment helper",
+	Use:          "envprobe",
+	Short:        "Development environment helper",
+	SilenceUsage: true,
 
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
