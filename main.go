@@ -1,6 +1,6 @@
 package main
 
-import "github.com/nchatzak/devsetup/cmd"
+import "github.com/nchatzak/envprobe/cmd"
 
 func main() {
 	cmd.Execute()

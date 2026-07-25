@@ -1,4 +1,4 @@
-module github.com/nchatzak/devsetup
+module github.com/nchatzak/envprobe
 
 go 1.26.5
 

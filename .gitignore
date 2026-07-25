@@ -37,4 +37,4 @@ Thumbs.db
 Desktop.ini
 
 # Tool specific files
-.devsetup.yaml
+.envprobe.yaml

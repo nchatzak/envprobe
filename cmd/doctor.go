@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/nchatzak/devsetup/internal/doctor"
+	"github.com/nchatzak/envprobe/internal/doctor"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

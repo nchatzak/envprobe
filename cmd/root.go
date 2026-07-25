@@ -11,7 +11,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "devsetup",
+	Use:   "envprobe",
 	Short: "Development environment helper",
 
 	// Uncomment the following line if your bare application
@@ -33,11 +33,11 @@ func init() {
 }
 
 func initConfig() {
-	viper.SetConfigName("devsetup")               // look for devsetup.<ext>
+	viper.SetConfigName("envprobe")               // look for envprobe.<ext>
 	viper.SetConfigType("yaml")                   // expect YAML
 	viper.AddConfigPath(".")                      // look for config in the current directory
 	viper.AddConfigPath("$HOME")                  // then home
-	viper.AddConfigPath("$HOME/.config/devsetup") // then user config dir
+	viper.AddConfigPath("$HOME/.config/envprobe") // then user config dir
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok {
