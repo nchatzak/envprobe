@@ -13,7 +13,11 @@ type RawCheck struct {
 	With map[string]any
 }
 
-var registry = map[string]func(name string, with map[string]any) (Check, error){
+// checkFactory builds one Check from its config entry. Every kind in the
+// registry is one of these.
+type checkFactory func(name string, with map[string]any) (Check, error)
+
+var registry = map[string]checkFactory{
 	"port":          newPortCheck,
 	"binary":        newBinaryCheck,
 	"docker-daemon": newDockerDaemonCheck,
@@ -23,7 +27,7 @@ func decodeWith(with map[string]any, out any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{Result: out, ErrorUnused: true})
 
 	if err != nil {
-		return fmt.Errorf("cannot create decoder, %w", err)
+		return fmt.Errorf("cannot create decoder: %w", err)
 	}
 
 	return decoder.Decode(with)
@@ -40,19 +44,24 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 			continue
 		}
 		if seen[raw.Name] {
-			errs = append(errs, fmt.Errorf("duplicate check name %q", raw.Name))
+			errs = append(errs, fmt.Errorf("checks[%d] %q: duplicate check name", i, raw.Name))
 			continue
 		}
 		seen[raw.Name] = true
 
+		if raw.Type == "" {
+			errs = append(errs, fmt.Errorf("checks[%d] %q: type is required", i, raw.Name))
+			continue
+		}
+
 		constructor, ok := registry[raw.Type]
 		if !ok {
-			errs = append(errs, fmt.Errorf("unknown check type %q for check %q", raw.Type, raw.Name))
+			errs = append(errs, fmt.Errorf("checks[%d] %q: unknown check type %q", i, raw.Name, raw.Type))
 			continue
 		}
 		check, err := constructor(raw.Name, raw.With)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("check %q: %w", raw.Name, err))
+			errs = append(errs, fmt.Errorf("checks[%d] %q: %w", i, raw.Name, err))
 			continue
 		}
 		checks = append(checks, check)

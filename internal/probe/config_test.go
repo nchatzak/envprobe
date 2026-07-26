@@ -60,9 +60,15 @@ func TestLoadChecksErrors(t *testing.T) {
 			wantErrContains: []string{"name is required"},
 		},
 		{
+			// The index is what tells the user which of the two entries to delete.
 			name:            "duplicate name",
 			raws:            []RawCheck{{Name: "Name1", Type: "binary"}, {Name: "Name1", Type: "binary"}},
-			wantErrContains: []string{"duplicate check name"},
+			wantErrContains: []string{"checks[1]", "duplicate check name"},
+		},
+		{
+			name:            "missing type",
+			raws:            []RawCheck{{Name: "Name1"}},
+			wantErrContains: []string{"checks[0]", "type is required"},
 		},
 		{
 			name:            "unknown type",
