@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/nchatzak/envprobe/internal/probe"
 	"github.com/spf13/viper"
@@ -22,8 +24,13 @@ func loadConfig() (*viper.Viper, error) {
 	v := viper.New()
 	v.SetConfigName("envprobe")
 	v.AddConfigPath(".")
-	v.AddConfigPath("$HOME")
-	v.AddConfigPath("$HOME/.config/envprobe")
+
+	// os.UserHomeDir resolves the right variable per platform; a literal
+	// "$HOME" expands to nothing where that variable is not set.
+	if home, err := os.UserHomeDir(); err == nil {
+		v.AddConfigPath(home)
+		v.AddConfigPath(filepath.Join(home, ".config", "envprobe"))
+	}
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); ok {
