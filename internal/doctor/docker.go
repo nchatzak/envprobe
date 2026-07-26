@@ -10,16 +10,12 @@ type dockerDaemonCheck struct{}
 
 var _ Check = dockerDaemonCheck{}
 
-func (c dockerDaemonCheck) Name() string {
-	return "docker-daemon"
-}
-
 func (c dockerDaemonCheck) Run(ctx context.Context) Result {
 	cmd := exec.CommandContext(ctx, "docker", "info")
 	err := cmd.Run()
 
 	return Result{
-		Name:  c.Name(),
+		Name:  "docker-daemon",
 		Found: err == nil,
 	}
 }

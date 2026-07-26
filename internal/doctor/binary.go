@@ -15,10 +15,6 @@ type binaryCheck struct {
 
 var _ Check = binaryCheck{}
 
-func (c binaryCheck) Name() string {
-	return c.name
-}
-
 func (c binaryCheck) Run(ctx context.Context) Result {
 	result := checkTool(c.target)
 	result.Name = c.name

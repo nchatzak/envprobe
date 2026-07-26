@@ -7,7 +7,6 @@ import (
 )
 
 type Check interface {
-	Name() string
 	Run(ctx context.Context) Result
 }
 

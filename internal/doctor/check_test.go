@@ -6,17 +6,15 @@ import (
 )
 
 type fakeCheck struct {
-	name   string
 	result Result
 }
 
-func (f fakeCheck) Name() string                   { return f.name }
 func (f fakeCheck) Run(ctx context.Context) Result { return f.result }
 
 func TestRunAll(t *testing.T) {
 	checks := []Check{
-		fakeCheck{name: "go", result: Result{Name: "go", Found: true}},
-		fakeCheck{name: "nonexistenttool", result: Result{Name: "nonexistenttool", Found: false}},
+		fakeCheck{result: Result{Name: "go", Found: true}},
+		fakeCheck{result: Result{Name: "nonexistenttool", Found: false}},
 	}
 
 	results := RunAll(t.Context(), checks)
@@ -32,7 +30,7 @@ func TestRunAll(t *testing.T) {
 		}
 		got.Duration = 0 // Reset duration for comparison
 		if got != check.(fakeCheck).result {
-			t.Errorf("RunAll() result for check %q = %v, want %v", check.Name(), results[i], check.(fakeCheck).result)
+			t.Errorf("RunAll() result for check %q = %v, want %v", results[i].Name, results[i], check.(fakeCheck).result)
 		}
 	}
 }

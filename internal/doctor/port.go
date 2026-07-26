@@ -15,10 +15,6 @@ type portCheck struct {
 
 var _ Check = portCheck{}
 
-func (p portCheck) Name() string {
-	return p.name
-}
-
 func (p portCheck) Run(ctx context.Context) Result {
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, "tcp", p.target)
