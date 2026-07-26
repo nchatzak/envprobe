@@ -1,4 +1,4 @@
-package doctor
+package probe
 
 import (
 	"strings"
