@@ -31,7 +31,7 @@ func TestLoadChecks(t *testing.T) {
 		{
 			name: "docker daemon",
 			raws: []RawCheck{{Name: "docker", Type: "docker-daemon"}},
-			want: []Check{dockerDaemonCheck{}},
+			want: []Check{dockerDaemonCheck{name: "docker"}},
 		},
 	}
 
@@ -78,6 +78,12 @@ func TestLoadChecksErrors(t *testing.T) {
 			name:            "unkown with param",
 			raws:            []RawCheck{{Name: "pg", Type: "port", With: map[string]any{"trgt": "localhost:5432"}}},
 			wantErrContains: []string{"has invalid keys"},
+		},
+		{
+			// docker-daemon takes no payload at all, so *any* key is invalid.
+			name:            "unknown with param on payload-less kind",
+			raws:            []RawCheck{{Name: "docker", Type: "docker-daemon", With: map[string]any{"targt": "x"}}},
+			wantErrContains: []string{"has invalid keys", "targt"},
 		},
 		{
 			name:            "two bad entries",
