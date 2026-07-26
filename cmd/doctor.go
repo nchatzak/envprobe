@@ -6,7 +6,6 @@ import (
 	"github.com/nchatzak/envprobe/internal/probe"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // doctorCmd represents the doctor command
@@ -15,11 +14,12 @@ var doctorCmd = &cobra.Command{
 	Short: "Check that required developer tools are installed",
 	Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var raws []probe.RawCheck
-		if err := viper.UnmarshalKey("checks", &raws); err != nil {
-			return fmt.Errorf("invalid checks config: %w", err)
+		v, err := loadConfig()
+		if err != nil {
+			return err
 		}
-		checks, err := probe.LoadChecks(raws)
+
+		checks, err := checksFromConfig(v)
 		if err != nil {
 			return err
 		}

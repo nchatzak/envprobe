@@ -1,0 +1,58 @@
+# envprobe configuration
+#
+# Every check has the same three fields:
+#
+#   name  - the label shown in output, and the key under `--json`. Must be unique.
+#   type  - which kind of check to run. One of: binary, port, docker-daemon.
+#   with  - the payload for that kind. Keys are validated: an unknown key is an
+#           error naming the key, so a typo fails loudly instead of being ignored.
+#
+# Delete what you don't need. An empty `checks:` list runs nothing and exits 0.
+
+checks:
+  # type: binary — is this executable on PATH?
+  #
+  #   target        the executable to look for. Defaults to `name`, so it can be
+  #                 omitted when they are the same.
+  #   version_args  optional. Arguments that make the tool print its version.
+  #                 Omit them and envprobe only reports found/missing.
+  - name: git
+    type: binary
+    with:
+      version_args: ["--version"]
+
+  # `name` is a display label, so it can differ from the executable.
+  - name: Java
+    type: binary
+    with:
+      target: java
+      version_args: ["-version"] # note: one dash, and java prints to stderr
+
+  - name: Go
+    type: binary
+    with:
+      target: go
+      version_args: ["version"] # note: no dashes at all
+
+  # No version_args — this only reports whether `terraform` is installed.
+  - name: terraform
+    type: binary
+
+  # type: port — is something listening? Proves a service is *running*, not
+  # merely installed.
+  #
+  #   target  required, "host:port". A bare port is not accepted.
+  - name: postgres
+    type: port
+    with:
+      target: localhost:5432
+
+  - name: redis
+    type: port
+    with:
+      target: 127.0.0.1:6379
+
+  # type: docker-daemon — runs `docker info` to prove the daemon answers, which
+  # the binary check alone cannot tell you. Takes no `with:` payload.
+  - name: docker-daemon
+    type: docker-daemon
