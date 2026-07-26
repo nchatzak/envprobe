@@ -15,8 +15,19 @@ var doctorCmd = &cobra.Command{
 	Short: "Check that required developer tools are installed",
 	Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		names := viper.GetStringSlice("checks") // retrieve the list of checks from the config file
-		checks := doctor.SelectChecks(doctor.DefaultChecks(), names)
+		var raws []doctor.RawCheck
+		if err := viper.UnmarshalKey("checks", &raws); err != nil {
+			return fmt.Errorf("invalid checks config: %w", err)
+		}
+		checks, err := doctor.LoadChecks(raws)
+		if err != nil {
+			return err
+		}
+
+		if len(checks) == 0 {
+			checks = doctor.DefaultChecks()
+		}
+
 		results := doctor.RunAll(cmd.Context(), checks)
 
 		jsonFlag, _ := cmd.Flags().GetBool("json")

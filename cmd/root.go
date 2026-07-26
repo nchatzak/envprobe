@@ -35,7 +35,6 @@ func init() {
 
 func initConfig() {
 	viper.SetConfigName("envprobe")               // look for envprobe.<ext>
-	viper.SetConfigType("yaml")                   // expect YAML
 	viper.AddConfigPath(".")                      // look for config in the current directory
 	viper.AddConfigPath("$HOME")                  // then home
 	viper.AddConfigPath("$HOME/.config/envprobe") // then user config dir

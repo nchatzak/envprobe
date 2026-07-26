@@ -7,7 +7,7 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 )
 
-type rawCheck struct {
+type RawCheck struct {
 	Name string
 	Type string
 	With map[string]any
@@ -29,7 +29,7 @@ func decodeWith(with map[string]any, out any) error {
 	return decoder.Decode(with)
 }
 
-func LoadChecks(raws []rawCheck) ([]Check, error) {
+func LoadChecks(raws []RawCheck) ([]Check, error) {
 	var errs []error
 	seen := make(map[string]bool, len(raws))
 	checks := make([]Check, 0, len(raws))

@@ -10,27 +10,27 @@ import (
 func TestLoadChecks(t *testing.T) {
 	tests := []struct {
 		name string
-		raws []rawCheck
+		raws []RawCheck
 		want []Check
 	}{
 		{
 			name: "empty input",
-			raws: []rawCheck{},
+			raws: []RawCheck{},
 			want: []Check{},
 		},
 		{
 			name: "port check",
-			raws: []rawCheck{{Name: "postgres", Type: "port", With: map[string]any{"target": "localhost:5432"}}},
+			raws: []RawCheck{{Name: "postgres", Type: "port", With: map[string]any{"target": "localhost:5432"}}},
 			want: []Check{portCheck{name: "postgres", target: "localhost:5432"}},
 		},
 		{
 			name: "binary with version",
-			raws: []rawCheck{{Name: "go", Type: "binary", With: map[string]any{"version_args": []string{"version"}}}},
+			raws: []RawCheck{{Name: "go", Type: "binary", With: map[string]any{"version_args": []string{"version"}}}},
 			want: []Check{binaryCheck{name: "go", target: "go", versionArgs: []string{"version"}}},
 		},
 		{
 			name: "docker daemon",
-			raws: []rawCheck{{Name: "docker", Type: "docker-daemon"}},
+			raws: []RawCheck{{Name: "docker", Type: "docker-daemon"}},
 			want: []Check{dockerDaemonCheck{}},
 		},
 	}
@@ -51,37 +51,37 @@ func TestLoadChecks(t *testing.T) {
 func TestLoadChecksErrors(t *testing.T) {
 	tests := []struct {
 		name            string
-		raws            []rawCheck
+		raws            []RawCheck
 		wantErrContains []string // slice, so the multi-error case can assert on both
 	}{
 		{
 			name:            "missing name",
-			raws:            []rawCheck{{Name: "", Type: "binary"}},
+			raws:            []RawCheck{{Name: "", Type: "binary"}},
 			wantErrContains: []string{"name is required"},
 		},
 		{
 			name:            "duplicate name",
-			raws:            []rawCheck{{Name: "Name1", Type: "binary"}, {Name: "Name1", Type: "binary"}},
+			raws:            []RawCheck{{Name: "Name1", Type: "binary"}, {Name: "Name1", Type: "binary"}},
 			wantErrContains: []string{"duplicate check name"},
 		},
 		{
 			name:            "unknown type",
-			raws:            []rawCheck{{Name: "Name1", Type: "anotherType"}},
+			raws:            []RawCheck{{Name: "Name1", Type: "anotherType"}},
 			wantErrContains: []string{"unknown check type"},
 		},
 		{
 			name:            "constructor error",
-			raws:            []rawCheck{{Name: "port", Type: "port"}},
+			raws:            []RawCheck{{Name: "port", Type: "port"}},
 			wantErrContains: []string{"target is required"},
 		},
 		{
 			name:            "unkown with param",
-			raws:            []rawCheck{{Name: "pg", Type: "port", With: map[string]any{"trgt": "localhost:5432"}}},
+			raws:            []RawCheck{{Name: "pg", Type: "port", With: map[string]any{"trgt": "localhost:5432"}}},
 			wantErrContains: []string{"has invalid keys"},
 		},
 		{
 			name:            "two bad entries",
-			raws:            []rawCheck{{Name: "", Type: "binary"}, {Name: "x", Type: "prot"}},
+			raws:            []RawCheck{{Name: "", Type: "binary"}, {Name: "x", Type: "prot"}},
 			wantErrContains: []string{"name is required", "unknown check type"},
 		},
 	}

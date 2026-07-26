@@ -2,7 +2,6 @@ package doctor
 
 import (
 	"context"
-	"slices"
 	"testing"
 )
 
@@ -43,41 +42,6 @@ func TestDefaultChecks(t *testing.T) {
 
 	if len(checks) == 0 {
 		t.Errorf("DefaultChecks() returned no checks")
-	}
-}
-
-func TestSelectChecks(t *testing.T) {
-	allChecks := []Check{
-		fakeCheck{name: "go", result: Result{Name: "go", Found: true}},
-		fakeCheck{name: "git", result: Result{Name: "git", Found: false}},
-	}
-
-	allCheckNames := make([]string, 0, len(allChecks))
-	for _, c := range allChecks {
-		allCheckNames = append(allCheckNames, c.Name())
-	}
-
-	tests := []struct {
-		name  string
-		names []string
-		want  []string
-	}{
-		{"subset", []string{"git"}, []string{"git"}},
-		{"empty returns all", nil, allCheckNames},
-		{"unknown ignored", []string{"nope"}, []string{}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			selectedChecks := SelectChecks(allChecks, tt.names)
-			got := make([]string, 0, len(selectedChecks))
-			for _, c := range selectedChecks {
-				got = append(got, c.Name())
-			}
-			if !slices.Equal(got, tt.want) {
-				t.Errorf("SelectChecks() returned unexpected check names: got %v, want %v", got, tt.want)
-			}
-		})
 	}
 }
 

@@ -57,20 +57,3 @@ func DefaultChecks() []Check {
 		dockerDaemonCheck{},
 	}
 }
-
-func SelectChecks(all []Check, names []string) []Check {
-	if len(names) == 0 {
-		return all
-	}
-	selected := make([]Check, 0, len(names))
-	nameSet := make(map[string]bool, len(names))
-	for _, name := range names {
-		nameSet[name] = true
-	}
-	for _, check := range all {
-		if nameSet[check.Name()] {
-			selected = append(selected, check)
-		}
-	}
-	return selected
-}
