@@ -22,7 +22,7 @@ func (p portCheck) Run(ctx context.Context) Result {
 	if err != nil {
 		return Result{Name: p.name, Found: false}
 	}
-	conn.Close()
+	_ = conn.Close()
 	return Result{Name: p.name, Found: true}
 }
 

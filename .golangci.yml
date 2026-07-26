@@ -1,0 +1,14 @@
+version: "2"
+linters:
+  enable:
+    - errcheck      # unchecked error returns
+    - govet
+    - staticcheck
+    - unused        # dead functions the compiler ignores
+    - ineffassign
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln

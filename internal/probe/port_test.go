@@ -21,7 +21,7 @@ func TestPortCheck(t *testing.T) {
 	t.Run("Port closed", func(t *testing.T) {
 		listener := openListener(t)
 		target := listener.Addr().String()
-		listener.Close() // Close the listener to simulate a closed port
+		_ = listener.Close() // Close the listener to simulate a closed port
 		check := portCheck{name: "test-port-closed", target: target}
 
 		result := check.Run(t.Context())
@@ -59,7 +59,7 @@ func openListener(t *testing.T) net.Listener {
 	}
 
 	t.Cleanup(func() {
-		listener.Close()
+		_ = listener.Close()
 	})
 	return listener
 }

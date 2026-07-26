@@ -66,11 +66,15 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	defer f.Close()
-
 	if _, err := io.WriteString(f, probe.ExampleConfig); err != nil {
+		_ = f.Close()
 		return err
 	}
+
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("closing %s: %w", output, err)
+	}
+
 	fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", output)
 	return nil
 }
