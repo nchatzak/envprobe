@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/nchatzak/envprobe/internal/probe"
-	"github.com/spf13/cobra"
 )
 
 func TestConfigExample(t *testing.T) {
@@ -142,27 +141,12 @@ func TestConfigValidateNoConfigFound(t *testing.T) {
 func execute(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	rootCmd.SetOut(&out)
-	rootCmd.SetErr(&errOut)
-	rootCmd.SetArgs(args)
-	// The command tree is package-level state, so flag values survive between
-	// tests unless they are put back.
-	t.Cleanup(func() {
-		rootCmd.SetArgs(nil)
-		resetFlag(t, configInitCmd, "force", "false")
-		resetFlag(t, configInitCmd, "out", "envprobe.yaml")
-	})
-	err = rootCmd.Execute()
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetErr(&errOut)
+	root.SetArgs(args)
+	err = root.Execute()
 	return out.String(), errOut.String(), err
-}
-
-// resetFlag restores a flag to its default. A failure here means the name or
-// value is wrong, which would silently leave the flag set for the next test.
-func resetFlag(t *testing.T, cmd *cobra.Command, name, value string) {
-	t.Helper()
-	if err := cmd.Flags().Set(name, value); err != nil {
-		t.Fatalf("resetting --%s: %v", name, err)
-	}
 }
 
 func tempPath(t *testing.T) string {

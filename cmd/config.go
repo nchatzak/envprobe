@@ -12,40 +12,40 @@ import (
 	"github.com/spf13/viper"
 )
 
-var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Inspect and generate envprobe configuration",
-}
+func newConfigCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Inspect and generate envprobe configuration",
+	}
 
-var configInitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Write an example envprobe.yaml",
-	Args:  cobra.NoArgs,
-	RunE:  runConfigInit,
-}
+	initCmd := &cobra.Command{
+		Use:   "init",
+		Short: "Write an example envprobe.yaml",
+		Args:  cobra.NoArgs,
+		RunE:  runConfigInit,
+	}
+	initCmd.Flags().StringP("out", "o", "envprobe.yaml", "output path")
+	initCmd.Flags().Bool("force", false, "overwrite an existing file")
 
-var configValidateCmd = &cobra.Command{
-	Use:   "validate [file]",
-	Short: "Validate envprobe configuration file",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runConfigValidate,
-}
+	validateCmd := &cobra.Command{
+		Use:   "validate [file]",
+		Short: "Validate envprobe configuration file",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  runConfigValidate,
+	}
 
-var configExampleCmd = &cobra.Command{
-	Use:   "example",
-	Short: "Print an example configuration",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := io.WriteString(cmd.OutOrStdout(), probe.ExampleConfig)
-		return err
-	},
-}
+	exampleCmd := &cobra.Command{
+		Use:   "example",
+		Short: "Print an example configuration",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := io.WriteString(cmd.OutOrStdout(), probe.ExampleConfig)
+			return err
+		},
+	}
 
-func init() {
-	configInitCmd.Flags().StringP("out", "o", "envprobe.yaml", `output path`)
-	configInitCmd.Flags().Bool("force", false, "overwrite an existing file")
-	configCmd.AddCommand(configInitCmd, configValidateCmd, configExampleCmd)
-	rootCmd.AddCommand(configCmd)
+	cmd.AddCommand(initCmd, validateCmd, exampleCmd)
+	return cmd
 }
 
 func runConfigInit(cmd *cobra.Command, args []string) error {
