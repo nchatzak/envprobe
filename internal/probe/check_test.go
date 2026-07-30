@@ -2,8 +2,9 @@ package probe
 
 import (
 	"context"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type fakeCheck struct {
@@ -47,10 +48,12 @@ func TestDefaultChecks(t *testing.T) {
 		dockerDaemonCheck{name: "docker-daemon"},
 	}
 
-	// reflect.DeepEqual, not slices.Equal: binaryCheck holds a []string, so it
-	// is not comparable, and == on an interface wrapping it panics at runtime.
-	if got := DefaultChecks(); !reflect.DeepEqual(got, want) {
-		t.Errorf("DefaultChecks() = %#v, want %#v", got, want)
+	// cmp.Diff, not slices.Equal: binaryCheck holds a []string, so it is not
+	// comparable, and == on an interface wrapping it panics at runtime.
+	// AllowUnexported is required because every field of a check is unexported.
+	got := DefaultChecks()
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(binaryCheck{}, dockerDaemonCheck{})); diff != "" {
+		t.Errorf("DefaultChecks() mismatch (-want +got):\n%s", diff)
 	}
 }
 
