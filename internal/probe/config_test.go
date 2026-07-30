@@ -86,6 +86,12 @@ func TestLoadChecksErrors(t *testing.T) {
 			wantErrContains: []string{"has invalid keys"},
 		},
 		{
+			// No WeaklyTypedInput, so an int where a string belongs is a decode error.
+			name:            "binary with wrong-typed target",
+			raws:            []RawCheck{{Name: "go", Type: "binary", With: map[string]any{"target": 123}}},
+			wantErrContains: []string{`decode binary config for "go"`},
+		},
+		{
 			// docker-daemon takes no payload at all, so *any* key is invalid.
 			name:            "unknown with param on payload-less kind",
 			raws:            []RawCheck{{Name: "docker", Type: "docker-daemon", With: map[string]any{"targt": "x"}}},
