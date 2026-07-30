@@ -126,8 +126,7 @@ func TestConfigValidateFindsConfig(t *testing.T) {
 // still has its defaults. Both search locations are redirected at empty temp
 // dirs so the result cannot depend on the machine running the test.
 func TestConfigValidateNoConfigFound(t *testing.T) {
-	t.Chdir(t.TempDir())
-	t.Setenv("HOME", t.TempDir())
+	isolate(t)
 
 	_, stderr, err := execute(t, "config", "validate")
 	if err != nil {

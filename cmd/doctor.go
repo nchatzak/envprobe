@@ -8,31 +8,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newDoctorCmd() *cobra.Command {
+func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Check that required developer tools are installed",
 		Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
-		RunE:  runDoctorCmd,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runDoctorCmd(cmd, load)
+		},
 	}
 	cmd.Flags().Bool("json", false, "output results as JSON")
 	cmd.Flags().Bool("ci", false, "exit non-zero if any check fails")
 	return cmd
 }
 
-func runDoctorCmd(cmd *cobra.Command, args []string) error {
-	v, err := loadConfig()
+func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error {
+	checks, err := load()
 	if err != nil {
 		return err
-	}
-
-	checks, err := checksFromConfig(v)
-	if err != nil {
-		return err
-	}
-
-	if len(checks) == 0 {
-		checks = probe.DefaultChecks()
 	}
 
 	results := probe.RunAll(cmd.Context(), checks)

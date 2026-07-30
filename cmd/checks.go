@@ -10,6 +10,23 @@ import (
 	"github.com/spf13/viper"
 )
 
+func configuredChecks() ([]probe.Check, error) {
+	v, err := loadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	checks, err := checksFromConfig(v)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checks) == 0 {
+		checks = probe.DefaultChecks()
+	}
+	return checks, nil
+}
+
 func checksFromConfig(v *viper.Viper) ([]probe.Check, error) {
 	var raws []probe.RawCheck
 	if err := v.UnmarshalKey("checks", &raws); err != nil {

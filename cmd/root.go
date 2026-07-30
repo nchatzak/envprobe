@@ -12,7 +12,7 @@ func newRootCmd() *cobra.Command {
 		Short:        "Development environment helper",
 		SilenceUsage: true,
 	}
-	cmd.AddCommand(newDoctorCmd(), newConfigCmd())
+	cmd.AddCommand(newDoctorCmd(configuredChecks), newConfigCmd())
 	return cmd
 }
 

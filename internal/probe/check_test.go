@@ -2,6 +2,7 @@ package probe
 
 import (
 	"context"
+	"reflect"
 	"testing"
 )
 
@@ -35,11 +36,21 @@ func TestRunAll(t *testing.T) {
 	}
 }
 
+// The defaults are asserted field by field, not just counted. A previous
+// regression dropped target from every binary check and TestDefaultChecks
+// stayed green because it only checked the slice was non-empty.
 func TestDefaultChecks(t *testing.T) {
-	checks := DefaultChecks()
+	want := []Check{
+		binaryCheck{name: "Git", target: "git", versionArgs: []string{"--version"}},
+		binaryCheck{name: "Java", target: "java", versionArgs: []string{"-version"}},
+		binaryCheck{name: "Go", target: "go", versionArgs: []string{"version"}},
+		dockerDaemonCheck{name: "docker-daemon"},
+	}
 
-	if len(checks) == 0 {
-		t.Errorf("DefaultChecks() returned no checks")
+	// reflect.DeepEqual, not slices.Equal: binaryCheck holds a []string, so it
+	// is not comparable, and == on an interface wrapping it panics at runtime.
+	if got := DefaultChecks(); !reflect.DeepEqual(got, want) {
+		t.Errorf("DefaultChecks() = %#v, want %#v", got, want)
 	}
 }
 
