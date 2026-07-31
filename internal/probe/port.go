@@ -2,7 +2,6 @@ package probe
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 )
@@ -34,11 +33,11 @@ func newPortCheck(name string, with map[string]any) (Check, error) {
 	var cfg portConfig
 	decodeErr := decodeWith(with, &cfg)
 	if decodeErr != nil {
-		return nil, fmt.Errorf("decode port config for %q: %w", name, decodeErr)
+		return nil, fmt.Errorf("decode port config: %w", decodeErr)
 	}
 
 	if cfg.Target == "" {
-		return nil, errors.New("target is required")
+		return nil, ErrTargetRequired
 	}
 
 	return portCheck{

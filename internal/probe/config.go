@@ -40,28 +40,47 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 
 	for i, raw := range raws {
 		if raw.Name == "" {
-			errs = append(errs, fmt.Errorf("checks[%d]: name is required", i))
+			errs = append(errs, &CheckError{
+				Index: i,
+				Err:   ErrNameRequired,
+			})
 			continue
 		}
 		if seen[raw.Name] {
-			errs = append(errs, fmt.Errorf("checks[%d] %q: duplicate check name", i, raw.Name))
+			errs = append(errs, &CheckError{
+				Index: i,
+				Name:  raw.Name,
+				Err:   ErrDuplicateName,
+			})
 			continue
 		}
 		seen[raw.Name] = true
 
 		if raw.Type == "" {
-			errs = append(errs, fmt.Errorf("checks[%d] %q: type is required", i, raw.Name))
+			errs = append(errs, &CheckError{
+				Index: i,
+				Name:  raw.Name,
+				Err:   ErrTypeRequired,
+			})
 			continue
 		}
 
 		constructor, ok := registry[raw.Type]
 		if !ok {
-			errs = append(errs, fmt.Errorf("checks[%d] %q: unknown check type %q", i, raw.Name, raw.Type))
+			errs = append(errs, &CheckError{
+				Index: i,
+				Name:  raw.Name,
+				Err:   fmt.Errorf("%w %q", ErrUnknownType, raw.Type),
+			})
 			continue
 		}
 		check, err := constructor(raw.Name, raw.With)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("checks[%d] %q: %w", i, raw.Name, err))
+			errs = append(errs, &CheckError{
+				Index: i,
+				Name:  raw.Name,
+				Err:   err,
+			})
 			continue
 		}
 		checks = append(checks, check)

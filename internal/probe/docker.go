@@ -31,7 +31,7 @@ type dockerDaemonConfig struct{}
 func newDockerDaemonCheck(name string, with map[string]any) (Check, error) {
 	var cfg dockerDaemonConfig
 	if decodeErr := decodeWith(with, &cfg); decodeErr != nil {
-		return nil, fmt.Errorf("decode docker-daemon config for %q: %w", name, decodeErr)
+		return nil, fmt.Errorf("decode docker-daemon config: %w", decodeErr)
 	}
 
 	return dockerDaemonCheck{name: name}, nil

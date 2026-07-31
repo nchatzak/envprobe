@@ -16,14 +16,12 @@ type jsonResult struct {
 	DurationMs int64  `json:"duration_ms"`
 }
 
-func RenderJSON(w io.Writer, results []Result) {
+func RenderJSON(w io.Writer, results []Result) error {
 	jsonResults := toJSONResults(results)
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(jsonResults); err != nil {
-		fmt.Fprintf(w, "Error encoding JSON: %v\n", err)
-	}
+	return encoder.Encode(jsonResults)
 }
 
 func toJSONResults(results []Result) []jsonResult {
@@ -40,14 +38,14 @@ func toJSONResults(results []Result) []jsonResult {
 	return jsonResults
 }
 
-func Render(w io.Writer, results []Result) {
+func Render(w io.Writer, results []Result) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 
 	for _, result := range results {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", status(result.Found), result.Name, result.Version, result.Duration.Round(time.Millisecond))
 	}
 
-	_ = tw.Flush()
+	return tw.Flush()
 }
 
 func status(found bool) string {

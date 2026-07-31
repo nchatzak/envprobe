@@ -14,6 +14,7 @@ func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 		Short: "Check that required developer tools are installed",
 		Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			cmd.SilenceUsage = true
 			return runDoctorCmd(cmd, load)
 		},
 	}
@@ -31,10 +32,13 @@ func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error 
 	results := probe.RunAll(cmd.Context(), checks)
 
 	jsonFlag, _ := cmd.Flags().GetBool("json")
+	render := probe.Render
 	if jsonFlag {
-		probe.RenderJSON(cmd.OutOrStdout(), results)
-	} else {
-		probe.Render(cmd.OutOrStdout(), results)
+		render = probe.RenderJSON
+	}
+
+	if err := render(cmd.OutOrStdout(), results); err != nil {
+		return fmt.Errorf("rendering results: %w", err)
 	}
 
 	ci, _ := cmd.Flags().GetBool("ci")

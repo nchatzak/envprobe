@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,9 +42,11 @@ func TestConfigInitExisting(t *testing.T) {
 	path := tempPath(t)
 	writeFile(t, path, "sentinel")
 
-	if _, _, err := execute(t, "config", "init", "-o", path); err == nil {
+	stdout, stderr, err := execute(t, "config", "init", "-o", path)
+	if err == nil {
 		t.Fatal("expected an error for an existing file")
 	}
+	assertNoUsage(t, "config init", stdout, stderr)
 	if got := readFile(t, path); got != "sentinel" {
 		t.Errorf("file was clobbered: %q", got)
 	}
@@ -62,9 +65,14 @@ func TestConfigInitForce(t *testing.T) {
 }
 
 func TestConfigInitRejectsArgs(t *testing.T) {
-	_, _, err := execute(t, "config", "init", "extraParam")
+	stdout, stderr, err := execute(t, "config", "init", "extraParam")
 	if err == nil {
 		t.Fatalf("expected an error from unexpected argument")
+	}
+	// The mirror of assertNoUsage: an Args violation is misuse, and misuse
+	// fails before RunE can set SilenceUsage, so the usage block must appear.
+	if out := stdout + stderr; !strings.Contains(out, "Usage:") {
+		t.Errorf("config init did not print usage for an args violation:\n%s", out)
 	}
 }
 
@@ -85,13 +93,14 @@ func TestConfigValidateBadType(t *testing.T) {
 	path := tempPath(t)
 	writeFile(t, path, "checks:\n  - name: x\n    type: bogus\n")
 
-	_, stderr, err := execute(t, "config", "validate", path)
+	stdout, stderr, err := execute(t, "config", "validate", path)
 	if err == nil {
 		t.Fatalf("expected an error, got none")
 	}
-	if !strings.Contains(stderr, "unknown check type") {
-		t.Fatalf("expected a type error, got %q", stderr)
+	if !errors.Is(err, probe.ErrUnknownType) {
+		t.Errorf("expected %q, got %q", probe.ErrUnknownType, err)
 	}
+	assertNoUsage(t, "config validate", stdout, stderr)
 }
 
 func TestConfigValidateNoChecks(t *testing.T) {
@@ -134,6 +143,17 @@ func TestConfigValidateNoConfigFound(t *testing.T) {
 	}
 	if !strings.Contains(stderr, "no config file found") {
 		t.Errorf("expected a warning, got %q", stderr)
+	}
+}
+
+// assertNoUsage checks that a RunE failure stayed quiet. Both streams are
+// concatenated because which one carries the usage block is an artifact of the
+// SetOut call in execute: cobra routes it through OutOrStderr, so the real
+// binary writes it to stderr.
+func assertNoUsage(t *testing.T, cmd, stdout, stderr string) {
+	t.Helper()
+	if out := stdout + stderr; strings.Contains(out, "Usage:") {
+		t.Errorf("%s printed usage for a runtime failure:\n%s", cmd, out)
 	}
 }
 

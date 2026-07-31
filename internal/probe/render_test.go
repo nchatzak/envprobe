@@ -2,6 +2,7 @@ package probe
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +40,10 @@ func TestRender(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var builder strings.Builder
-			Render(&builder, tt.results)
+			err := Render(&builder, tt.results)
+			if err != nil {
+				t.Fatalf("Render returned an error: %v", err)
+			}
 			gotOutput := builder.String()
 
 			if gotOutput == "" {
@@ -61,6 +65,15 @@ func TestRender(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("returns the writer's error", func(t *testing.T) {
+		// A non-empty slice matters: Render only writes inside the loop, so
+		// with no results Flush has nothing to push and returns nil.
+		err := Render(errWriter{}, []Result{{Name: "git", Found: true}})
+		if !errors.Is(err, errWrite) {
+			t.Errorf("Render() error = %v, want %v", err, errWrite)
+		}
+	})
 }
 
 func TestToJSONResults(t *testing.T) {
@@ -91,13 +104,22 @@ func TestToJSONResults(t *testing.T) {
 	}
 }
 
+var errWrite = errors.New("write error")
+
+type errWriter struct{}
+
+func (errWriter) Write([]byte) (int, error) { return 0, errWrite }
+
 func TestRenderJSON(t *testing.T) {
 	t.Run("omits empty fields for not-found tool", func(t *testing.T) {
 		results := []Result{
 			{Name: "nonexistenttool", Found: false, Version: "", Path: "", Duration: 0},
 		}
 		var builder strings.Builder
-		RenderJSON(&builder, results)
+		err := RenderJSON(&builder, results)
+		if err != nil {
+			t.Fatalf("RenderJSON() returned unexpected error: %v", err)
+		}
 		gotOutput := builder.String()
 
 		var got []map[string]any
@@ -127,7 +149,10 @@ func TestRenderJSON(t *testing.T) {
 			{Name: "go", Found: true, Version: "1.16.0", Path: "/opt/go", Duration: 2500 * time.Millisecond},
 		}
 		var builder strings.Builder
-		RenderJSON(&builder, results)
+		err := RenderJSON(&builder, results)
+		if err != nil {
+			t.Fatalf("RenderJSON() returned unexpected error: %v", err)
+		}
 		gotOutput := builder.String()
 
 		var got []map[string]any
@@ -153,6 +178,13 @@ func TestRenderJSON(t *testing.T) {
 
 		if value, ok := got[0]["duration_ms"]; !ok || value != float64(2500) {
 			t.Errorf("RenderJSON() output does not contain expected duration for found tool")
+		}
+	})
+
+	t.Run("returns the writer's error", func(t *testing.T) {
+		err := RenderJSON(errWriter{}, []Result{{Name: "x"}})
+		if !errors.Is(err, errWrite) {
+			t.Errorf("RenderJSON() returned unexpected error: %v", err)
 		}
 	})
 }

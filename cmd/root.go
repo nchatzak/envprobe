@@ -8,9 +8,8 @@ import (
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "envprobe",
-		Short:        "Development environment helper",
-		SilenceUsage: true,
+		Use:   "envprobe",
+		Short: "Development environment helper",
 	}
 	cmd.AddCommand(newDoctorCmd(configuredChecks), newConfigCmd())
 	return cmd

@@ -39,6 +39,7 @@ func newConfigCmd() *cobra.Command {
 		Short: "Print an example configuration",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			_, err := io.WriteString(cmd.OutOrStdout(), probe.ExampleConfig)
 			return err
 		},
@@ -49,6 +50,7 @@ func newConfigCmd() *cobra.Command {
 }
 
 func runConfigInit(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	output, _ := cmd.Flags().GetString("out")
 	force, _ := cmd.Flags().GetBool("force")
 
@@ -80,6 +82,7 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 }
 
 func runConfigValidate(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	v, err := configViper(args)
 	if err != nil {
 		return err

@@ -26,10 +26,6 @@ func runDoctor(t *testing.T, load func() ([]probe.Check, error), args ...string)
 	var stdout, stderr bytes.Buffer
 	cmd := newDoctorCmd(load)
 
-	// Detached from newRootCmd, so root's SilenceUsage doesn't apply and a
-	// RunE error would dump the usage block into stderr.
-	cmd.SilenceUsage = true
-
 	cmd.SetOut(&stdout)
 	cmd.SetErr(&stderr)
 	cmd.SetArgs(append([]string{}, args...))
@@ -116,7 +112,11 @@ func TestDoctorCI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
+			stdout, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
+			// A failing check is a runtime failure, not misuse: no usage block.
+			if strings.Contains(stdout, "Usage:") {
+				t.Errorf("doctor printed usage for a runtime failure:\n%s", stdout)
+			}
 			if tt.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
@@ -143,5 +143,43 @@ func TestDoctorLoaderError(t *testing.T) {
 	}
 	if out != "" {
 		t.Errorf("expected no output, got:\n%s", out)
+	}
+}
+
+var errWrite = errors.New("write failed")
+
+// errWriter stands in for a closed pipe or a full disk, so that the render
+// error has somewhere to come from.
+type errWriter struct{}
+
+func (errWriter) Write([]byte) (int, error) { return 0, errWrite }
+
+// Covers the wiring rather than the renderers: probe already tests that both
+// return the writer's error, this asserts runDoctorCmd propagates it.
+func TestDoctorRenderError(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{"text", nil},
+		{"json", []string{"--json"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cmd := newDoctorCmd(staticLoader(found("git")))
+			cmd.SetOut(errWriter{})
+			cmd.SetErr(&bytes.Buffer{})
+			// Must stay non-nil: cobra falls back to os.Args[1:] otherwise,
+			// which under `go test` is a list of -test.* flags.
+			cmd.SetArgs(append([]string{}, tt.args...))
+
+			err := cmd.ExecuteContext(t.Context())
+			if !errors.Is(err, errWrite) {
+				t.Errorf("error = %v, want it to wrap %v", err, errWrite)
+			}
+		})
 	}
 }

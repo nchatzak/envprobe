@@ -47,7 +47,7 @@ func newBinaryCheck(name string, with map[string]any) (Check, error) {
 	var cfg binaryConfig
 	decodeErr := decodeWith(with, &cfg)
 	if decodeErr != nil {
-		return nil, fmt.Errorf("decode binary config for %q: %w", name, decodeErr)
+		return nil, fmt.Errorf("decode binary config: %w", decodeErr)
 	}
 
 	if cfg.Target == "" {
