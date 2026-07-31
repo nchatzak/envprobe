@@ -20,7 +20,7 @@ func newConfigCmd() *cobra.Command {
 
 	initCmd := &cobra.Command{
 		Use:   "init",
-		Short: "Write an example envprobe.yaml",
+		Short: "Write an example config to a file",
 		Args:  cobra.NoArgs,
 		RunE:  runConfigInit,
 	}
@@ -29,14 +29,14 @@ func newConfigCmd() *cobra.Command {
 
 	validateCmd := &cobra.Command{
 		Use:   "validate [file]",
-		Short: "Validate envprobe configuration file",
+		Short: "Validate a config file, or the one envprobe would use",
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  runConfigValidate,
 	}
 
 	exampleCmd := &cobra.Command{
 		Use:   "example",
-		Short: "Print an example configuration",
+		Short: "Print an example config to stdout",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true

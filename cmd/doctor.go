@@ -11,8 +11,12 @@ import (
 func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
-		Short: "Check that required developer tools are installed",
-		Long:  `Check that required developer tools are installed. This command will check for the presence of required tools and their versions, and report any issues found.`,
+		Short: "Run the configured environment checks",
+		Long: `Run every check in your envprobe config and report what passed.
+
+Checks are read from envprobe.yaml in the current directory, your home
+directory, or ~/.config/envprobe. With no config file, a built-in default
+set is used — run "envprobe config init" to start from an example.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cmd.SilenceUsage = true
 			return runDoctorCmd(cmd, load)
