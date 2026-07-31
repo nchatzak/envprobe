@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -50,4 +51,33 @@ OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, s
 			}
 		})
 	}
+}
+
+func FuzzParseVersionOutput(f *testing.F) {
+	seeds := []string{
+		"go version go1.26.5 darwin/arm64",
+		"v24.14.1",
+		`openjdk version "21.0.11" 2026-04-21 LTS`,
+		"",
+		"\n\n  \n",
+		"no digits here",
+		"1.2.3.4.5",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+
+	f.Fuzz(func(t *testing.T, output string) {
+		got := parseVersionOutput(output)
+
+		if !strings.Contains(output, got) {
+			t.Errorf("parseVersionOutput(%q) = %q, which is not a substring of the input", output, got)
+		}
+		if strings.TrimSpace(got) != got {
+			t.Errorf("parseVersionOutput(%q) = %q, which has surrounding whitespace", output, got)
+		}
+		if strings.Contains(got, "\n") {
+			t.Errorf("parseVersionOutput(%q) = %q, which spans multiple lines", output, got)
+		}
+	})
 }

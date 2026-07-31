@@ -52,13 +52,13 @@ func failingLoader(err error) func() ([]probe.Check, error) {
 
 func found(name string) fakeCheck {
 	return fakeCheck{
-		probe.Result{Name: name, Found: true},
+		result: probe.Result{Name: name, Found: true},
 	}
 }
 
 func missing(name string) fakeCheck {
 	return fakeCheck{
-		probe.Result{Name: name, Found: false},
+		result: probe.Result{Name: name, Found: false},
 	}
 }
 
