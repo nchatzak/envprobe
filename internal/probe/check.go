@@ -47,12 +47,3 @@ func RunAll(ctx context.Context, checks []Check) []Result {
 	wg.Wait()
 	return results
 }
-
-func DefaultChecks() []Check {
-	return []Check{
-		binaryCheck{name: "Git", target: "git", versionArgs: []string{"--version"}},
-		binaryCheck{name: "Java", target: "java", versionArgs: []string{"-version"}},
-		binaryCheck{name: "Go", target: "go", versionArgs: []string{"version"}},
-		dockerDaemonCheck{name: "docker-daemon"},
-	}
-}

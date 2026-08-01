@@ -131,19 +131,18 @@ func TestConfigValidateFindsConfig(t *testing.T) {
 	}
 }
 
-// No config anywhere on the search path is a warning, not an error — doctor
-// still has its defaults. Both search locations are redirected at empty temp
-// dirs so the result cannot depend on the machine running the test.
+// No config anywhere on the search path is an error, not a warning: validate
+// and doctor must agree on whether this environment is configured, and nothing
+// was. Both search locations are redirected at empty temp dirs so the result
+// cannot depend on the machine running the test.
 func TestConfigValidateNoConfigFound(t *testing.T) {
 	isolate(t)
 
-	_, stderr, err := execute(t, "config", "validate")
-	if err != nil {
-		t.Fatalf("config validate: %v", err)
+	stdout, stderr, err := execute(t, "config", "validate")
+	if !errors.Is(err, errNoConfig) {
+		t.Fatalf("config validate error = %v, want errNoConfig", err)
 	}
-	if !strings.Contains(stderr, "no config file found") {
-		t.Errorf("expected a warning, got %q", stderr)
-	}
+	assertNoUsage(t, "config validate", stdout, stderr)
 }
 
 // assertNoUsage checks that a RunE failure stayed quiet. Both streams are

@@ -5,7 +5,7 @@ package cmd
 // outright if the test has called t.Parallel.
 
 import (
-	"reflect"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -56,36 +56,28 @@ func checkNames(t *testing.T, checks []probe.Check) []string {
 	return names
 }
 
-// Asserts provenance, not content: that the fallback branch handed back
-// exactly what DefaultChecks builds. Whether those defaults are the right
-// checks is probe.TestDefaultChecks's job, and it asserts them field by field.
-// Comparing the values also keeps this test hermetic — reading their names
-// would mean running them, which shells out to git, java, go and docker.
-func TestConfiguredChecksFallsBackToDefaults(t *testing.T) {
-	tests := []struct {
-		name   string
-		config string // "" means: write no config file at all
-	}{
-		{"no config found", ""},
-		{"config with an empty check list", "checks: []\n"},
+// The two cases the old fallback conflated, now split. No config file means
+// the user never said what to check, so reporting a pass would be a lie.
+func TestConfiguredChecksNoConfig(t *testing.T) {
+	isolate(t)
+
+	checks, err := configuredChecks()
+	if !errors.Is(err, errNoConfig) {
+		t.Fatalf("configuredChecks() = %#v, %v; want errNoConfig", checks, err)
 	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			isolate(t)
-			if tt.config != "" {
-				writeFile(t, "envprobe.yaml", tt.config)
-			}
+// An empty list is an explicit choice to check nothing: no error, no checks.
+func TestConfiguredChecksEmptyList(t *testing.T) {
+	isolate(t)
+	writeFile(t, "envprobe.yaml", "checks: []\n")
 
-			checks, err := configuredChecks()
-			if err != nil {
-				t.Fatalf("configuredChecks() error = %v", err)
-			}
-
-			if want := probe.DefaultChecks(); !reflect.DeepEqual(checks, want) {
-				t.Errorf("configuredChecks() = %#v, want the defaults %#v", checks, want)
-			}
-		})
+	checks, err := configuredChecks()
+	if err != nil {
+		t.Fatalf("configuredChecks() error = %v", err)
+	}
+	if len(checks) != 0 {
+		t.Errorf("configuredChecks() = %#v, want no checks", checks)
 	}
 }
 
@@ -104,39 +96,31 @@ func TestConfiguredChecksFromConfig(t *testing.T) {
 	}
 }
 
-func TestConfiguredChecksErrors(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  string
-		wantErr string // substring the error must contain
-	}{
-		{
-			name:    "malformed yaml",
-			config:  "checks: [\n",
-			wantErr: "parsing config",
-		},
-		{
-			// TODO(ch14): assert with errors.Is once LoadChecks has sentinels.
-			name:    "unknown check type",
-			config:  "checks:\n  - name: alpha\n    type: nonsense\n",
-			wantErr: "unknown check type",
-		},
+// Viper never gets far enough to hand us a checks list, so this asserts on its
+// message: the failure belongs to the YAML parser and has no sentinel of ours.
+func TestConfiguredChecksMalformedYAML(t *testing.T) {
+	isolate(t)
+	writeFile(t, "envprobe.yaml", "checks: [\n")
+
+	checks, err := configuredChecks()
+	if err == nil {
+		// Don't call checkNames here: it runs the checks, and this is the
+		// branch where we have no idea what got built.
+		t.Fatalf("configuredChecks() = %#v, want an error", checks)
 	}
+	if !strings.Contains(err.Error(), "parsing config") {
+		t.Errorf("error = %q, want it to name the parse failure", err)
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			isolate(t)
-			writeFile(t, "envprobe.yaml", tt.config)
+// Past the parser, LoadChecks rejects the entry, so this matches the sentinel
+// rather than the prose wrapped around it by CheckError.
+func TestConfiguredChecksUnknownType(t *testing.T) {
+	isolate(t)
+	writeFile(t, "envprobe.yaml", "checks:\n  - name: alpha\n    type: nonsense\n")
 
-			checks, err := configuredChecks()
-			if err == nil {
-				// Don't call checkNames here: it runs the checks, and this is
-				// the branch where we have no idea what got built.
-				t.Fatalf("configuredChecks() = %#v, want an error", checks)
-			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error = %q, want it to contain %q", err, tt.wantErr)
-			}
-		})
+	checks, err := configuredChecks()
+	if !errors.Is(err, probe.ErrUnknownType) {
+		t.Fatalf("configuredChecks() = %#v, %v; want ErrUnknownType", checks, err)
 	}
 }

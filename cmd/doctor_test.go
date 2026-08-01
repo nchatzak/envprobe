@@ -20,18 +20,20 @@ func (f fakeCheck) Run(ctx context.Context) probe.Result {
 	return f.result
 }
 
-func runDoctor(t *testing.T, load func() ([]probe.Check, error), args ...string) (string, error) {
+func runDoctor(t *testing.T, load func() ([]probe.Check, error), args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 
-	var stdout, stderr bytes.Buffer
+	var out, errOut bytes.Buffer
 	cmd := newDoctorCmd(load)
 
-	cmd.SetOut(&stdout)
-	cmd.SetErr(&stderr)
+	cmd.SetOut(&out)
+	cmd.SetErr(&errOut)
+	// Must stay non-nil: cobra falls back to os.Args[1:] otherwise, which
+	// under `go test` is a list of -test.* flags.
 	cmd.SetArgs(append([]string{}, args...))
 
-	err := cmd.ExecuteContext(t.Context())
-	return stdout.String(), err
+	err = cmd.ExecuteContext(t.Context())
+	return out.String(), errOut.String(), err
 }
 
 func staticLoader(checks ...probe.Check) func() ([]probe.Check, error) {
@@ -60,7 +62,7 @@ func missing(name string) fakeCheck {
 
 func TestDoctorOutput(t *testing.T) {
 	t.Parallel()
-	out, err := runDoctor(t, staticLoader(found("git"), missing("docker")))
+	out, _, err := runDoctor(t, staticLoader(found("git"), missing("docker")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +84,7 @@ func TestDoctorJSON(t *testing.T) {
 		Found bool   `json:"found"`
 	}
 
-	out, err := runDoctor(t, staticLoader(found("git"), missing("docker")), "--json")
+	out, _, err := runDoctor(t, staticLoader(found("git"), missing("docker")), "--json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,6 +97,69 @@ func TestDoctorJSON(t *testing.T) {
 	want := []jsonRow{{"git", true}, {"docker", false}}
 	if !slices.Equal(got, want) {
 		t.Errorf("decoded %v, want %v", got, want)
+	}
+}
+
+// Zero checks is valid config, so this exits 0 — the warning on stderr is the
+// only evidence doctor ran at all, since the table renderer emits nothing.
+func TestDoctorNoChecks(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		args       []string
+		wantStdout string
+	}{
+		{"text", nil, ""},
+		{"json", []string{"--json"}, "[]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, err := runDoctor(t, staticLoader(), tt.args...)
+			if err != nil {
+				t.Fatalf("doctor with no checks: %v", err)
+			}
+			if got := strings.TrimSpace(stdout); got != tt.wantStdout {
+				t.Errorf("stdout = %q, want %q", got, tt.wantStdout)
+			}
+			if !strings.Contains(stderr, "no checks") {
+				t.Errorf("stderr = %q, want a no-checks warning", stderr)
+			}
+		})
+	}
+}
+
+// --ci turns zero checks into a hard failure, reported before RunAll: stdout
+// stays empty under both renderers, where TestDoctorNoChecks gets an empty
+// table and []. Asserts the sentinel rather than its prose, and that the
+// warning is suppressed so the run reports the condition once.
+func TestDoctorCINoChecks(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{"text", []string{"--ci"}},
+		{"json", []string{"--ci", "--json"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, err := runDoctor(t, staticLoader(), tt.args...)
+			if !errors.Is(err, errNoChecks) {
+				t.Fatalf("doctor %s with no checks: err = %v, want errNoChecks",
+					strings.Join(tt.args, " "), err)
+			}
+			if stdout != "" {
+				t.Errorf("expected no output, got:\n%s", stdout)
+			}
+			if strings.Contains(stderr, "warning:") {
+				t.Errorf("reported twice, warning and error:\n%s", stderr)
+			}
+			assertNoUsage(t, "doctor "+strings.Join(tt.args, " "), stdout, stderr)
+		})
 	}
 }
 
@@ -112,7 +177,7 @@ func TestDoctorCI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			stdout, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
+			stdout, _, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
 			// A failing check is a runtime failure, not misuse: no usage block.
 			if strings.Contains(stdout, "Usage:") {
 				t.Errorf("doctor printed usage for a runtime failure:\n%s", stdout)
@@ -137,7 +202,7 @@ func TestDoctorLoaderError(t *testing.T) {
 	t.Parallel()
 
 	errBoom := errors.New("boom")
-	out, err := runDoctor(t, failingLoader(errBoom))
+	out, _, err := runDoctor(t, failingLoader(errBoom))
 	if !errors.Is(err, errBoom) {
 		t.Fatalf("error = %v, want %v", err, errBoom)
 	}

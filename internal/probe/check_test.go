@@ -3,8 +3,6 @@ package probe
 import (
 	"context"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 type fakeCheck struct {
@@ -34,26 +32,6 @@ func TestRunAll(t *testing.T) {
 		if got != check.(fakeCheck).result {
 			t.Errorf("RunAll() result for check %q = %v, want %v", results[i].Name, results[i], check.(fakeCheck).result)
 		}
-	}
-}
-
-// The defaults are asserted field by field, not just counted. A previous
-// regression dropped target from every binary check and TestDefaultChecks
-// stayed green because it only checked the slice was non-empty.
-func TestDefaultChecks(t *testing.T) {
-	want := []Check{
-		binaryCheck{name: "Git", target: "git", versionArgs: []string{"--version"}},
-		binaryCheck{name: "Java", target: "java", versionArgs: []string{"-version"}},
-		binaryCheck{name: "Go", target: "go", versionArgs: []string{"version"}},
-		dockerDaemonCheck{name: "docker-daemon"},
-	}
-
-	// cmp.Diff, not slices.Equal: binaryCheck holds a []string, so it is not
-	// comparable, and == on an interface wrapping it panics at runtime.
-	// AllowUnexported is required because every field of a check is unexported.
-	got := DefaultChecks()
-	if diff := cmp.Diff(want, got, cmp.AllowUnexported(binaryCheck{}, dockerDaemonCheck{})); diff != "" {
-		t.Errorf("DefaultChecks() mismatch (-want +got):\n%s", diff)
 	}
 }
 

@@ -93,12 +93,8 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Non-empty: both loaders return an error when they read no file.
 	path := v.ConfigFileUsed()
-	if path == "" {
-		fmt.Fprintln(cmd.ErrOrStderr(), "warning: no config file found; doctor will use built-in defaults")
-		return nil
-	}
-
 	if len(checks) == 0 {
 		fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s defines no checks\n", path)
 		return nil

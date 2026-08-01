@@ -1,12 +1,18 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/nchatzak/envprobe/internal/probe"
 
 	"github.com/spf13/cobra"
 )
+
+// errNoChecks means the config parsed but defined no checks, under --ci. A
+// gate that passes without verifying anything is broken, so this is a failure
+// there even though plain doctor treats an empty list as a valid choice.
+var errNoChecks = errors.New("no checks configured, so nothing was verified")
 
 func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 	cmd := &cobra.Command{
@@ -15,15 +21,14 @@ func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 		Long: `Run every check in your envprobe config and report what passed.
 
 Checks are read from envprobe.yaml in the current directory, your home
-directory, or ~/.config/envprobe. With no config file, a built-in default
-set is used — run "envprobe config init" to start from an example.`,
+directory, or ~/.config/envprobe. Run "envprobe config init" to create one.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cmd.SilenceUsage = true
 			return runDoctorCmd(cmd, load)
 		},
 	}
 	cmd.Flags().Bool("json", false, "output results as JSON")
-	cmd.Flags().Bool("ci", false, "exit non-zero if any check fails")
+	cmd.Flags().Bool("ci", false, "exit non-zero if any check fails or none are configured")
 	return cmd
 }
 
@@ -31,6 +36,20 @@ func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error 
 	checks, err := load()
 	if err != nil {
 		return err
+	}
+
+	ci, _ := cmd.Flags().GetBool("ci")
+
+	// An empty checks: list is deliberate config, so interactively it is a
+	// warning and exit 0 — but the table renderer emits nothing for zero
+	// results, so without this a run that checked nothing looks like a crash.
+	// Under --ci it is a failure instead, reported here rather than after the
+	// render: there is nothing to run and nothing to show.
+	if len(checks) == 0 {
+		if ci {
+			return errNoChecks
+		}
+		fmt.Fprintln(cmd.ErrOrStderr(), "warning: no checks configured")
 	}
 
 	results := probe.RunAll(cmd.Context(), checks)
@@ -45,7 +64,8 @@ func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error 
 		return fmt.Errorf("rendering results: %w", err)
 	}
 
-	ci, _ := cmd.Flags().GetBool("ci")
+	// After render on purpose: --ci --json still emits its results before the
+	// non-zero exit.
 	if ci {
 		failedCount := probe.CountFailed(results)
 		if failedCount > 0 {
