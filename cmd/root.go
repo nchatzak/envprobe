@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"errors"
 
 	"github.com/spf13/cobra"
 )
@@ -21,8 +21,16 @@ answers. Run "envprobe doctor" to check them all at once.`,
 	return cmd
 }
 
-func Execute() {
-	if err := newRootCmd().Execute(); err != nil {
-		os.Exit(1)
+func Execute() int {
+	return exitCode(newRootCmd().Execute())
+}
+
+func exitCode(err error) int {
+	if err == nil {
+		return 0
 	}
+	if _, ok := errors.AsType[checksFailedError](err); ok {
+		return 1
+	}
+	return 2
 }

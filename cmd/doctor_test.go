@@ -163,36 +163,45 @@ func TestDoctorCINoChecks(t *testing.T) {
 	}
 }
 
+// TestDoctorCI asserts the type; this asserts the prose CI users actually read.
+// The counts differ so a transposed format string cannot pass.
+func TestChecksFailedErrorMessage(t *testing.T) {
+	t.Parallel()
+	got := checksFailedError{failed: 1, total: 3}.Error()
+	if want := "1 of 3 checks failed"; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
+	}
+}
+
 func TestDoctorCI(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		checks  []probe.Check
-		wantErr string // "" means: expect success
+		name   string
+		checks []probe.Check
+		want   *checksFailedError // nil means: expect success
 	}{
-		{"all pass", []probe.Check{found("git"), found("docker")}, ""},
-		{"one fails", []probe.Check{found("git"), missing("docker")}, "1 of 2"},
+		{"all pass", []probe.Check{found("git"), found("docker")}, nil},
+		{"one fails", []probe.Check{found("git"), missing("docker")}, &checksFailedError{failed: 1, total: 2}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			stdout, _, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
+			stdout, stderr, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
 			// A failing check is a runtime failure, not misuse: no usage block.
-			if strings.Contains(stdout, "Usage:") {
-				t.Errorf("doctor printed usage for a runtime failure:\n%s", stdout)
-			}
-			if tt.wantErr == "" {
+			assertNoUsage(t, "doctor --ci", stdout, stderr)
+			if tt.want == nil {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("expected an error containing %q, got nil", tt.wantErr)
+			got, ok := errors.AsType[checksFailedError](err)
+			if !ok {
+				t.Fatalf("error = %v (%T), want checksFailedError", err, err)
 			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error = %q, want it to contain %q", err, tt.wantErr)
+			if got != *tt.want {
+				t.Errorf("error = %+v, want %+v", got, *tt.want)
 			}
 		})
 	}

@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 )
 
 func TestRootRegistersSubcommands(t *testing.T) {
+	t.Parallel()
 	var got []string
 	for _, c := range newRootCmd().Commands() {
 		got = append(got, c.Name())
@@ -21,6 +24,7 @@ func TestRootRegistersSubcommands(t *testing.T) {
 }
 
 func TestRootPrintUsage(t *testing.T) {
+	t.Parallel()
 	cmd := newRootCmd()
 	cmd.SetArgs([]string{"doctor", "--nope"})
 
@@ -42,5 +46,30 @@ func TestRootPrintUsage(t *testing.T) {
 	}
 	if !strings.Contains(errBuf.String(), "unknown flag") {
 		t.Errorf("error not printed for unknown flag; got %q", errBuf.String())
+	}
+}
+
+func TestExitCode(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{name: "no error", err: nil, want: 0},
+		{name: "checks failed", err: checksFailedError{failed: 1, total: 3}, want: 1},
+		{name: "no checks error", err: errNoChecks, want: 2},
+		{name: "no config error", err: errNoConfig, want: 2},
+		{name: "other error", err: errors.New("boom"), want: 2},
+		{name: "wrapper error", err: fmt.Errorf("wrapped: %w", checksFailedError{failed: 2, total: 2}), want: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := exitCode(tt.err); got != tt.want {
+				t.Errorf("exitCode() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

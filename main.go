@@ -1,7 +1,11 @@
 package main
 
-import "github.com/nchatzak/envprobe/cmd"
+import (
+	"os"
+
+	"github.com/nchatzak/envprobe/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	os.Exit(cmd.Execute())
 }

@@ -14,6 +14,16 @@ import (
 // there even though plain doctor treats an empty list as a valid choice.
 var errNoChecks = errors.New("no checks configured, so nothing was verified")
 
+// checksFailedError means the checks ran and some reported a problem.
+type checksFailedError struct {
+	failed int
+	total  int
+}
+
+func (e checksFailedError) Error() string {
+	return fmt.Sprintf("%d of %d checks failed", e.failed, e.total)
+}
+
 func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -21,14 +31,20 @@ func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
 		Long: `Run every check in your envprobe config and report what passed.
 
 Checks are read from envprobe.yaml in the current directory, your home
-directory, or ~/.config/envprobe. Run "envprobe config init" to create one.`,
+directory, or ~/.config/envprobe. Run "envprobe config init" to create one.
+
+Exit codes:
+  0  every check passed, or there was nothing to check
+  1  the checks ran and at least one failed (--ci only)
+  2  envprobe could not check: no config file, no checks under --ci, a
+     config it could not build, or a bad flag`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cmd.SilenceUsage = true
 			return runDoctorCmd(cmd, load)
 		},
 	}
 	cmd.Flags().Bool("json", false, "output results as JSON")
-	cmd.Flags().Bool("ci", false, "exit non-zero if any check fails or none are configured")
+	cmd.Flags().Bool("ci", false, "exit 1 if any check fails, 2 if none are configured")
 	return cmd
 }
 
@@ -69,7 +85,10 @@ func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error 
 	if ci {
 		failedCount := probe.CountFailed(results)
 		if failedCount > 0 {
-			return fmt.Errorf("%d of %d checks failed", failedCount, len(results))
+			return checksFailedError{
+				failed: failedCount,
+				total:  len(results),
+			}
 		}
 	}
 	return nil
