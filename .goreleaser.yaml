@@ -18,7 +18,7 @@ builds:
       - -s -w -X github.com/nchatzak/envprobe/cmd.version={{ .Version }}
 
 archives:
-  - formats: [tar.gz]
+  - formats: [ tar.gz ]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -29,11 +29,19 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
 changelog:
-  sort: asc
+  abbrev: -1
   filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - "^ci:"
-      - "^refactor:"
+    include:
+      - "^feat:"
+      - "^fix:"
+      - '^chore\(deps\):'
+  groups:
+    - title: Features
+      regexp: '^feat:'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^fix:'
+      order: 1
+    - title: Dependency updates
+      regexp: '^chore\(deps\):'
+      order: 2
