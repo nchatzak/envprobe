@@ -24,9 +24,6 @@ using /Users/you/envprobe.yaml
 
 ## Install
 
-Prebuilt binaries land with the first tagged release. Until then, build it
-yourself — this needs Go 1.26 or newer:
-
 ```bash
 go install github.com/nchatzak/envprobe@latest
 ```
