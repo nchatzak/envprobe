@@ -12,15 +12,17 @@ import (
 	"github.com/nchatzak/envprobe/internal/probe"
 )
 
+const fakeConfigPath = "test.yaml"
+
 type fakeCheck struct {
 	result probe.Result
 }
 
-func (f fakeCheck) Run(ctx context.Context) probe.Result {
+func (f fakeCheck) Run(context.Context) probe.Result {
 	return f.result
 }
 
-func runDoctor(t *testing.T, load func() ([]probe.Check, error), args ...string) (stdout, stderr string, err error) {
+func runDoctor(t *testing.T, load checkLoader, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 
 	var out, errOut bytes.Buffer
@@ -36,15 +38,17 @@ func runDoctor(t *testing.T, load func() ([]probe.Check, error), args ...string)
 	return out.String(), errOut.String(), err
 }
 
-func staticLoader(checks ...probe.Check) func() ([]probe.Check, error) {
-	return func() ([]probe.Check, error) {
-		return checks, nil
+func staticLoader(checks ...probe.Check) checkLoader {
+	return func() ([]probe.Check, string, error) {
+		return checks, fakeConfigPath, nil
 	}
 }
 
-func failingLoader(err error) func() ([]probe.Check, error) {
-	return func() ([]probe.Check, error) {
-		return nil, err
+// source is empty when no config file was found and populated when one was read
+// but could not be built -- the two shapes runDoctorCmd distinguishes.
+func failingLoader(source string, err error) checkLoader {
+	return func() ([]probe.Check, string, error) {
+		return nil, source, err
 	}
 }
 
@@ -71,6 +75,44 @@ func TestDoctorOutput(t *testing.T) {
 		if !strings.Contains(out, name) {
 			t.Errorf("output missing %q:\n%s", name, out)
 		}
+	}
+}
+
+// The config file doctor read is named on stderr, so a CI log records what was
+// checked. HasPrefix rather than Contains: it pins the wording and that nothing
+// precedes it. Note what neither can see — stdout and stderr are separate
+// buffers here, so "printed before the results" is not observable from stderr.
+func TestDoctorReportsConfigSource(t *testing.T) {
+	t.Parallel()
+	stdout, stderr, err := runDoctor(t, staticLoader(found("git")))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := "using " + fakeConfigPath + "\n"
+	if !strings.HasPrefix(stderr, want) {
+		t.Errorf("stderr = %q, want it to start with %q", stderr, want)
+	}
+
+	// stdout carries results only: the line must not reach a --json consumer.
+	if strings.Contains(stdout, fakeConfigPath) {
+		t.Errorf("config path leaked into stdout:\n%s", stdout)
+	}
+}
+
+// Zero checks puts the source line and the warning on the same stream, which is
+// the one place the order is real rather than an artifact of two buffers. A
+// reader has to see which file produced the warning before the warning itself.
+func TestDoctorReportsConfigSourceBeforeWarning(t *testing.T) {
+	t.Parallel()
+	_, stderr, err := runDoctor(t, staticLoader())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source, warning := strings.Index(stderr, "using "), strings.Index(stderr, "warning:")
+	if source < 0 || warning < 0 || source > warning {
+		t.Errorf("stderr = %q, want the source line before the warning", stderr)
 	}
 }
 
@@ -207,16 +249,38 @@ func TestDoctorCI(t *testing.T) {
 	}
 }
 
+// No config file was found, so there is nothing to name: stderr carries the
+// error and nothing else.
 func TestDoctorLoaderError(t *testing.T) {
 	t.Parallel()
 
 	errBoom := errors.New("boom")
-	out, _, err := runDoctor(t, failingLoader(errBoom))
+	out, stderr, err := runDoctor(t, failingLoader("", errBoom))
 	if !errors.Is(err, errBoom) {
 		t.Fatalf("error = %v, want %v", err, errBoom)
 	}
 	if out != "" {
 		t.Errorf("expected no output, got:\n%s", out)
+	}
+	if strings.Contains(stderr, "using") {
+		t.Errorf("named a config file when none was read:\n%s", stderr)
+	}
+}
+
+// A file was read but could not be built. The failure is about that file's
+// contents, so the run names it before reporting the error.
+func TestDoctorNamesConfigThatFailedToBuild(t *testing.T) {
+	t.Parallel()
+
+	errBoom := errors.New("boom")
+	_, stderr, err := runDoctor(t, failingLoader(fakeConfigPath, errBoom))
+	if !errors.Is(err, errBoom) {
+		t.Fatalf("error = %v, want %v", err, errBoom)
+	}
+
+	want := "using " + fakeConfigPath + "\n"
+	if !strings.HasPrefix(stderr, want) {
+		t.Errorf("stderr = %q, want it to start with %q", stderr, want)
 	}
 }
 

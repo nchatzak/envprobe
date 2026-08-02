@@ -100,6 +100,28 @@ func TestConfigValidateBadType(t *testing.T) {
 	if !errors.Is(err, probe.ErrUnknownType) {
 		t.Errorf("expected %q, got %q", probe.ErrUnknownType, err)
 	}
+	// Named above the error, not inside it: LoadChecks joins its failures, so a
+	// prefix would label only the first entry of the set.
+	if want := "using " + path + "\n"; !strings.Contains(stderr, want) {
+		t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+	}
+	assertNoUsage(t, "config validate", stdout, stderr)
+}
+
+// The explicit-path loader prefixes the file onto viper's parse error, so this
+// failure reads the same whether the file was searched for or named on the
+// command line.
+func TestConfigValidateMalformedYAML(t *testing.T) {
+	path := tempPath(t)
+	writeFile(t, path, "checks: [\n")
+
+	stdout, stderr, err := execute(t, "config", "validate", path)
+	if err == nil {
+		t.Fatal("expected an error, got none")
+	}
+	if !strings.Contains(err.Error(), path) {
+		t.Errorf("error = %q, want it to name %q", err, path)
+	}
 	assertNoUsage(t, "config validate", stdout, stderr)
 }
 
@@ -119,7 +141,7 @@ func TestConfigValidateNoChecks(t *testing.T) {
 func TestConfigValidateFindsConfig(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	path := filepath.Join(dir, "envprobe.yaml")
+	path := filepath.Join(dir, testConfigFileName)
 	writeFile(t, path, probe.ExampleConfig)
 
 	stdout, _, err := execute(t, "config", "validate")
@@ -169,7 +191,7 @@ func execute(t *testing.T, args ...string) (stdout, stderr string, err error) {
 
 func tempPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(t.TempDir(), "envprobe.yaml")
+	return filepath.Join(t.TempDir(), testConfigFileName)
 }
 
 func writeFile(t *testing.T, path, content string) {

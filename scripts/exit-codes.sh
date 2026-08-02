@@ -18,7 +18,9 @@ bin=${1:-./envprobe}
 [ -x "$bin" ] || { echo "not executable: $bin" >&2; exit 1; }
 bin=$(cd "$(dirname "$bin")" && pwd)/$(basename "$bin")
 
-work=$(mktemp -d)
+# Resolved, because mktemp -d hands back a path through a symlink on macOS and
+# the assertions below compare against the path viper reports.
+work=$(cd "$(mktemp -d)" && pwd -P)
 trap 'rm -rf "$work"' EXIT
 
 # Isolate from the developer's own config: the search path is cwd, then $HOME,
@@ -75,6 +77,15 @@ assert_contains() {
 	failures=$((failures + 1))
 }
 
+assert_not_contains() {
+	case "$2" in
+	*"$3"*)
+		printf 'FAIL %-44s unexpected %s in:\n%s\n' "$1" "$3" "$2"
+		failures=$((failures + 1))
+		;;
+	esac
+}
+
 assert_no_usage() {
 	case "$stdout$stderr" in
 	*Usage:*)
@@ -88,6 +99,8 @@ echo "== no config file =="
 expect 2 "doctor" -- doctor
 assert_stdout_empty "doctor"
 assert_contains "doctor" "$stderr" "no config file found"
+# Nothing was read, so there is no file to name.
+assert_not_contains "doctor" "$stderr" "using "
 assert_no_usage "doctor"
 
 # Empty stdout here proves the loader failed before --json was ever read: a
@@ -101,6 +114,10 @@ echo "== config with an empty check list =="
 echo 'checks: []' >envprobe.yaml
 expect 0 "doctor" -- doctor
 assert_contains "doctor" "$stderr" "no checks configured"
+# Which file the search picked, as one string: two substrings would pass on a
+# path from somewhere else. On stderr, so --json stays parseable -- the stdout
+# assertion below is what proves it did not leak.
+assert_contains "doctor" "$stderr" "using $work/envprobe.yaml"
 expect 0 "doctor --json" -- doctor --json
 assert_stdout_is "doctor --json" "[]"
 expect 0 "config validate" -- config validate
@@ -120,8 +137,15 @@ echo "== config envprobe cannot build =="
 printf 'checks:\n  - name: x\n    type: nosuchtype\n' >envprobe.yaml
 expect 2 "unknown check type" -- doctor
 assert_contains "unknown check type" "$stderr" "nosuchtype"
+# A file was read, so the run names it even though the build failed.
+assert_contains "unknown check type" "$stderr" "using $work/envprobe.yaml"
 printf 'checks: [\n' >envprobe.yaml
 expect 2 "malformed yaml" -- doctor
+# Named by the error rather than the source line: the read failed, so
+# configuredChecks never got a viper to report a path from. Asserting both
+# halves, since the split is the design.
+assert_contains "malformed yaml" "$stderr" "$work/envprobe.yaml"
+assert_not_contains "malformed yaml" "$stderr" "using "
 
 echo "== misuse =="
 rm -f envprobe.yaml

@@ -24,7 +24,7 @@ func (e checksFailedError) Error() string {
 	return fmt.Sprintf("%d of %d checks failed", e.failed, e.total)
 }
 
-func newDoctorCmd(load func() ([]probe.Check, error)) *cobra.Command {
+func newDoctorCmd(load checkLoader) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Run the configured environment checks",
@@ -48,8 +48,13 @@ Exit codes:
 	return cmd
 }
 
-func runDoctorCmd(cmd *cobra.Command, load func() ([]probe.Check, error)) error {
-	checks, err := load()
+func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
+	checks, source, err := load()
+
+	// Before the error check, so a config that failed to build still names the
+	// file.
+	printConfigSource(cmd.ErrOrStderr(), source)
+
 	if err != nil {
 		return err
 	}

@@ -6,12 +6,18 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/nchatzak/envprobe/internal/probe"
 )
+
+// The name loadConfig searches for. Written to the working directory that
+// isolate creates, so tests can rebuild the path loadConfig will report.
+const testConfigFileName = "envprobe.yaml"
 
 // Two binary checks aimed at targets that cannot exist, so Run is a failed
 // exec.LookPath and never spawns a subprocess.
@@ -43,6 +49,19 @@ func isolate(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 }
 
+// wantConfigPath is the path loadConfig reports for a file written to the
+// working directory isolate created. The full path, not its base: isolate points
+// cwd and home at different dirs, so comparing all of it is what tells the two
+// lookups apart.
+func wantConfigPath(t *testing.T) string {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(cwd, testConfigFileName)
+}
+
 // checkNames runs the checks and collects the names they report. probe.Check
 // has only Run, and the concrete types are unexported in another package, so
 // running them is the only way to observe what was built.
@@ -61,7 +80,7 @@ func checkNames(t *testing.T, checks []probe.Check) []string {
 func TestConfiguredChecksNoConfig(t *testing.T) {
 	isolate(t)
 
-	checks, err := configuredChecks()
+	checks, _, err := configuredChecks()
 	if !errors.Is(err, errNoConfig) {
 		t.Fatalf("configuredChecks() = %#v, %v; want errNoConfig", checks, err)
 	}
@@ -70,9 +89,9 @@ func TestConfiguredChecksNoConfig(t *testing.T) {
 // An empty list is an explicit choice to check nothing: no error, no checks.
 func TestConfiguredChecksEmptyList(t *testing.T) {
 	isolate(t)
-	writeFile(t, "envprobe.yaml", "checks: []\n")
+	writeFile(t, testConfigFileName, "checks: []\n")
 
-	checks, err := configuredChecks()
+	checks, _, err := configuredChecks()
 	if err != nil {
 		t.Fatalf("configuredChecks() error = %v", err)
 	}
@@ -83,11 +102,15 @@ func TestConfiguredChecksEmptyList(t *testing.T) {
 
 func TestConfiguredChecksFromConfig(t *testing.T) {
 	isolate(t)
-	writeFile(t, "envprobe.yaml", twoCheckConfig)
+	writeFile(t, testConfigFileName, twoCheckConfig)
 
-	checks, err := configuredChecks()
+	checks, path, err := configuredChecks()
 	if err != nil {
 		t.Fatalf("configuredChecks() error = %v", err)
+	}
+
+	if want := wantConfigPath(t); path != want {
+		t.Errorf("configuredChecks() path = %q, want %q", path, want)
 	}
 
 	want := []string{"alpha", "beta"}
@@ -100,9 +123,9 @@ func TestConfiguredChecksFromConfig(t *testing.T) {
 // message: the failure belongs to the YAML parser and has no sentinel of ours.
 func TestConfiguredChecksMalformedYAML(t *testing.T) {
 	isolate(t)
-	writeFile(t, "envprobe.yaml", "checks: [\n")
+	writeFile(t, testConfigFileName, "checks: [\n")
 
-	checks, err := configuredChecks()
+	checks, _, err := configuredChecks()
 	if err == nil {
 		// Don't call checkNames here: it runs the checks, and this is the
 		// branch where we have no idea what got built.
@@ -111,16 +134,29 @@ func TestConfiguredChecksMalformedYAML(t *testing.T) {
 	if !strings.Contains(err.Error(), "parsing config") {
 		t.Errorf("error = %q, want it to name the parse failure", err)
 	}
+
+	// The source line cannot carry the path here: the read failed, so
+	// configuredChecks has no viper to report one from. It is prefixed onto the
+	// error instead, which reads correctly because a parse error is one line.
+	if want := wantConfigPath(t); !strings.Contains(err.Error(), want) {
+		t.Errorf("error = %q, want it to name %q", err, want)
+	}
 }
 
 // Past the parser, LoadChecks rejects the entry, so this matches the sentinel
 // rather than the prose wrapped around it by CheckError.
 func TestConfiguredChecksUnknownType(t *testing.T) {
 	isolate(t)
-	writeFile(t, "envprobe.yaml", "checks:\n  - name: alpha\n    type: nonsense\n")
+	writeFile(t, testConfigFileName, "checks:\n  - name: alpha\n    type: nonsense\n")
 
-	checks, err := configuredChecks()
+	checks, path, err := configuredChecks()
 	if !errors.Is(err, probe.ErrUnknownType) {
 		t.Fatalf("configuredChecks() = %#v, %v; want ErrUnknownType", checks, err)
+	}
+
+	// A file was read, so the caller can still name it. errors.Is cannot see
+	// this: the error is identical either way.
+	if path == "" {
+		t.Error("configuredChecks() path = \"\", want the file that failed to build")
 	}
 }

@@ -193,6 +193,76 @@ there would break `TestLoadChecks`.
 Parked on the design question of whether a seam that exists only for tests
 earns its keep. Tests otherwise spawn no external processes.
 
+## No structured logging yet
+
+`log/slog` was considered and declined for now. envprobe has one diagnostic
+consumer -- a person, or a CI log a person reads -- and a level flag exists to
+let different consumers ask for different volumes. There is no second consumer
+to serve.
+
+The concrete case was thinner than it looked. Per-check durations, the obvious
+thing to log, are already in the results table (`render.go`). That left two
+genuinely invisible things:
+
+* **Which config file the search picked.** `doctor` never says, and
+  `config validate` only prints a path when one was passed explicitly. Worth a
+  plain `using <path>` line on stderr, not a logging framework.
+* **The version command's error, swallowed in `binaryCheck.Run`.** A binary
+  whose `--version` fails reports no version and no reason. That is a `Result`
+  shape question -- see "`Result` is a junk drawer" -- and turning it into a
+  log line would have been finding work for slog rather than fixing the hole.
+
+Diagnostics stay plain `fmt.Fprint` to stderr, which keeps one channel and one
+format. The trigger for revisiting is a second consumer: log shipping that
+wants JSON, or enough diagnostic lines that people want to mute some and keep
+others. One line per run is not that.
+
+### The source line is a print, not error context
+
+`doctor` prints `using <path>` before it checks the loader's error, so a config
+that failed to build still names the file -- which is when a reader most needs
+it. `configuredChecks` therefore returns the path alongside the build error;
+it is empty only when no file was found, the one case with nothing to name.
+
+`config validate` prints the same line on the same failure. It is the command
+whose job is diagnosing config, so it was the worse one to leave silent: it
+already names the file on success (`<path>: N checks OK`, on stdout, where the
+path *is* the result) and now names it on failure too, on stderr, where it is a
+diagnostic.
+
+The alternative was to put the path in the error instead,
+`fmt.Errorf("%s: %w", path, err)`, which is the shape the rest of the package
+uses. It is wrong here. `LoadChecks` collects failures with `errors.Join`, so
+its `Error()` is multi-line, and a prefix attaches to the first line only:
+
+```
+/abs/envprobe.yaml: checks[0] "alpha": unknown check type "nonsense"
+checks[1] "beta": unknown check type "alsobad"
+```
+
+That reads as though the path belongs to `checks[0]`. A joined error cannot
+take a prefix that applies to the whole set, so the file is named once, above
+the error, by the code that is printing anyway.
+
+Malformed YAML takes the prefix instead. It fails in `loadConfig`, which
+returns a nil viper, so no path reaches the caller and the source line never
+prints -- the one failure where a reader most needs the filename, since they
+just edited it. The `errors.Join` objection above does not apply here: viper's
+parse error is a single line, so `fmt.Errorf("%s: %w", v.ConfigFileUsed(), err)`
+attaches the path to the whole error and not to one entry of a set.
+`ConfigFileUsed()` is populated even though `ReadInConfig()` failed, so this
+costs nothing and leaves the contract -- a non-nil error means there is nothing
+to read -- intact.
+
+`loadConfigFile` prefixes its own read error the same way, with the path it was
+handed rather than `ConfigFileUsed()`. The user typed that path, so it is the
+weaker case -- but a failure that names its file through one loader and not the
+other is a difference with no reason behind it.
+
+So the path reaches the user either way, by whichever route reads correctly:
+above the error when the file parsed and its contents failed, inside the error
+when the file did not parse at all.
+
 ## Platforms
 
 CI runs on `ubuntu-latest` only. A matrix triples the minutes to test code with

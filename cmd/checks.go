@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -18,12 +19,27 @@ import (
 // files exist. Viper, the search path and ConfigFileUsed are all cmd's.
 var errNoConfig = errors.New(`no config file found (run "envprobe config init")`)
 
-func configuredChecks() ([]probe.Check, error) {
+// checkLoader reports the checks a config file defines and the path it was read
+// from. source is empty only when no file was read.
+type checkLoader func() (checks []probe.Check, source string, err error)
+
+// printConfigSource names the config file a command is working from. An empty
+// path prints nothing: no file was read, so there is nothing to name.
+func printConfigSource(w io.Writer, path string) {
+	if path == "" {
+		return
+	}
+	fmt.Fprintf(w, "using %s\n", path)
+}
+
+func configuredChecks() ([]probe.Check, string, error) {
 	v, err := loadConfig()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return checksFromConfig(v)
+	source := v.ConfigFileUsed()
+	checks, err := checksFromConfig(v)
+	return checks, source, err
 }
 
 func checksFromConfig(v *viper.Viper) ([]probe.Check, error) {
@@ -53,7 +69,9 @@ func loadConfig() (*viper.Viper, error) {
 		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); ok {
 			return nil, errNoConfig
 		}
-		return nil, err // malformed YAML — a real error, returned not exited
+		// Malformed YAML. ConfigFileUsed is set even though the read failed,
+		// and the error is one line, so a prefix names the file it belongs to.
+		return nil, fmt.Errorf("%s: %w", v.ConfigFileUsed(), err)
 	}
 	return v, nil
 }
@@ -63,7 +81,9 @@ func loadConfigFile(path string) (*viper.Viper, error) {
 	v := viper.New()
 	v.SetConfigFile(path)
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
+		// Prefixed like loadConfig's, so the same failure reads the same way
+		// whether the file was searched for or named on the command line.
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return v, nil
 }

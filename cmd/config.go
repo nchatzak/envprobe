@@ -88,13 +88,17 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Non-empty: both loaders return an error when they read no file.
+	path := v.ConfigFileUsed()
+
 	checks, err := checksFromConfig(v)
 	if err != nil {
+		// Same split as doctor: the build failure is an errors.Join set, so the
+		// file is named above it rather than prefixed onto its first entry.
+		printConfigSource(cmd.ErrOrStderr(), path)
 		return err
 	}
 
-	// Non-empty: both loaders return an error when they read no file.
-	path := v.ConfigFileUsed()
 	if len(checks) == 0 {
 		fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s defines no checks\n", path)
 		return nil
