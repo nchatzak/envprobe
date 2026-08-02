@@ -63,3 +63,12 @@ should exit 1 must reach that type. The table is in `doctor`'s `Long`.
 Plain ASCII only: no double quotes, backticks, `$` or `!`, so a message stays
 safe in `git commit -m` from an interactive zsh. Conventional-commit prefixes
 (`feat:`, `fix:`, `test:`, `chore:`, `ci:`, `refactor:`).
+
+Subjects are release notes. `.goreleaser.yaml` excludes every prefix except
+`feat:` and `fix:`, so those two are read by users deciding whether to upgrade
+and must say what changed for them, not how it was built. The rest are read
+only by us.
+
+Keep the subject short and imperative. A body is for what a subject cannot
+carry -- a test-scope change, a contract that moved. Most commits do not need
+one.
