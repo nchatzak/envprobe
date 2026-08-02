@@ -57,6 +57,7 @@ does not hold up the rest. A check that times out is reported as a failure.
 | `envprobe config init` | Write an example config to `./envprobe.yaml` (`-o` to change the path, `--force` to overwrite) |
 | `envprobe config validate [file]` | Parse a config without running anything |
 | `envprobe config example` | Print the annotated example config to stdout |
+| `envprobe --version` | Print the version (`-v` works too) |
 
 ### JSON output
 

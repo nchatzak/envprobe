@@ -49,6 +49,36 @@ func TestRootPrintUsage(t *testing.T) {
 	}
 }
 
+func TestRootVersionFlag(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "long flag", args: []string{"--version"}},
+		{name: "shorthand", args: []string{"-v"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cmd := newRootCmd()
+			cmd.SetArgs(tt.args)
+
+			var outBuf bytes.Buffer
+			cmd.SetOut(&outBuf)
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("Execute() = %v, want nil", err)
+			}
+
+			if got := outBuf.String(); !strings.Contains(got, version) {
+				t.Errorf("version output = %q, want it to contain %q", got, version)
+			}
+		})
+	}
+}
+
 func TestExitCode(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

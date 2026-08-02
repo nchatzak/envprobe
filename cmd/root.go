@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version = "dev"
+
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "envprobe",
@@ -16,6 +18,7 @@ a laptop, a CI runner, or a test or UAT box.
 It verifies that binaries are on PATH and reports their versions, that
 something is listening on the ports you name, and that the Docker daemon
 answers. Run "envprobe doctor" to check them all at once.`,
+		Version: version,
 	}
 	cmd.AddCommand(newDoctorCmd(configuredChecks), newConfigCmd())
 	return cmd
