@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"testing"
@@ -74,6 +75,37 @@ func TestRootVersionFlag(t *testing.T) {
 
 			if got := outBuf.String(); !strings.Contains(got, version) {
 				t.Errorf("version output = %q, want it to contain %q", got, version)
+			}
+		})
+	}
+}
+
+func TestResolveVersion(t *testing.T) {
+	t.Parallel()
+	buildInfo := func(v string) *debug.BuildInfo {
+		return &debug.BuildInfo{Main: debug.Module{Version: v}}
+	}
+
+	tests := []struct {
+		name string
+		v    string
+		info *debug.BuildInfo
+		want string
+	}{
+		{name: "ldflags wins over build info", v: "0.1.0", info: buildInfo("v9.9.9"), want: "0.1.0"},
+		{name: "ldflags wins with no build info", v: "0.1.0", info: nil, want: "0.1.0"},
+		{name: "falls back to module version", v: "dev", info: buildInfo("v0.1.0"), want: "0.1.0"},
+		{name: "falls back to pseudo-version", v: "dev", info: buildInfo("v0.1.1-0.20260803194500-abc123def456"), want: "0.1.1-0.20260803194500-abc123def456"},
+		{name: "no build info", v: "dev", info: nil, want: "dev"},
+		{name: "local build", v: "dev", info: buildInfo("(devel)"), want: "dev"},
+		{name: "empty module version", v: "dev", info: buildInfo(""), want: "dev"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := resolveVersion(tt.v, tt.info); got != tt.want {
+				t.Errorf("resolveVersion(%q, %v) = %q, want %q", tt.v, tt.info, got, tt.want)
 			}
 		})
 	}

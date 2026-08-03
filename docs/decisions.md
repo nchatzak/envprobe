@@ -172,6 +172,36 @@ upstream cannot silently defeat it.
 
 # Deferred
 
+## The version string has two sources
+
+`--version` reads `cmd.version`, which defaults to `dev` and is overwritten at
+release time by the `-X` ldflag in `.goreleaser.yaml`. That covers the released
+archives and nothing else. `go install github.com/nchatzak/envprobe@v0.1.0`
+fetches the source and compiles it locally, so GoReleaser never runs and the
+default survives -- the README points people at exactly that command, so the
+users least able to say which build they have were the ones reporting `dev`.
+
+`resolveVersion` falls back to `debug.BuildInfo.Main.Version`, which the
+toolchain stamps in without any build flags. ldflags still wins where both
+exist: it is the version GoReleaser actually tagged and shipped, and only the
+release path sets it.
+
+Consequence worth knowing before it surprises someone: since Go 1.24 the main
+module version is derived from VCS tags, so a local `go build` no longer says
+`(devel)`. On a clean tree at a tag it prints that tag; with the tree dirty it
+appends a marker, `0.1.0+dirty`; once commits move past the tag it prints a
+pseudo-version, `0.1.1-0.20260803194500-abc123def456`. That is more honest than
+`dev` -- it names the commit and flags uncommitted changes -- but it does mean
+everyday builds stopped reporting a round number. `(devel)` and the empty string are still rejected, because a source
+tarball with no `.git` produces them and `dev` reads better than nothing.
+
+The leading `v` is trimmed so both paths print the same shape: ldflags supplies
+`0.1.0` from GoReleaser's `{{ .Version }}`, build info supplies `v0.1.0`.
+
+`resolveVersion` takes the `*debug.BuildInfo` rather than calling
+`debug.ReadBuildInfo` itself, so both branches are reachable from a test
+without a seam that production does not use. `newRootCmd` is the only caller.
+
 ## `Result` is a junk drawer
 
 `Path` and `Version` are meaningless for `portCheck`, which also throws away
