@@ -24,6 +24,10 @@ using /Users/you/envprobe.yaml
 
 ## Install
 
+Download a binary from the [latest
+release](https://github.com/nchatzak/envprobe/releases/latest), or build from
+source:
+
 ```bash
 go install github.com/nchatzak/envprobe@latest
 ```
