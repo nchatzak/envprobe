@@ -119,11 +119,11 @@ func TestExitCode(t *testing.T) {
 		want int
 	}{
 		{name: "no error", err: nil, want: 0},
-		{name: "checks failed", err: checksFailedError{failed: 1, total: 3}, want: 1},
+		{name: "checks failed", err: errChecksFailed, want: 1},
 		{name: "no checks error", err: errNoChecks, want: 2},
 		{name: "no config error", err: errNoConfig, want: 2},
 		{name: "other error", err: errors.New("boom"), want: 2},
-		{name: "wrapper error", err: fmt.Errorf("wrapped: %w", checksFailedError{failed: 2, total: 2}), want: 1},
+		{name: "wrapper error", err: fmt.Errorf("wrapped: %w", errChecksFailed), want: 1},
 	}
 
 	for _, tt := range tests {

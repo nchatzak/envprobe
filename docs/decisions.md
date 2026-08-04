@@ -159,11 +159,48 @@ other way, putting the error *above* the findings, but envprobe is a shell and
 CI tool rather than a plugin polled by a monitoring daemon. Nothing goes near
 126/127/128+N, which the shell owns.
 
-`exitCode` in `cmd/root.go` maps `checksFailedError` to 1 and **defaults
-everything else to 2**, so an error type added later lands in "could not check"
+`exitCode` in `cmd/root.go` maps `errChecksFailed` to 1 and **defaults
+everything else to 2**, so an error added later lands in "could not check"
 without anyone remembering to update the mapping. That is the safe direction to
-fail. It matches with `errors.AsType` rather than a type switch, so a wrapper
+fail. It matches with `errors.Is` rather than a type switch, so a wrapper
 upstream cannot silently defeat it.
+
+### The summary owns the count, the error owns the verdict
+
+`errChecksFailed` is a bare sentinel reading `checks failed`. It used to be a
+`checksFailedError{failed, total}` whose `Error()` read `1 of 2 checks failed`,
+which was the only report of the tally until `PrintSummary` arrived. With both,
+a failing `--ci` run said:
+
+```
+1 of 2 checks passed
+Error: 1 of 2 checks failed
+```
+
+The same two numbers, meaning opposite things, told apart only by the last
+word. Two owners for one fact, and a reader scanning a CI log has to stop and
+work out which is which.
+
+The count belongs to the summary, which prints on every run in both modes, so
+CI logs and terminals carry one greppable line with one vocabulary. The error is
+left saying only that the run failed -- which is what an error is for, and how
+`make` and `go build` read: a report line, then a status line.
+
+It is `PrintSummary`, not `RenderSummary`. `Render` and `RenderJSON` are
+interchangeable behind one variable in `doctor` and return an error on a failed
+stdout write; the summary is a stderr diagnostic that returns nothing, since
+there is nowhere to report a failed stderr write to. `print*` for those,
+`Render*` for output a caller can act on the failure of -- the same split
+`printConfigSource` already uses one package up.
+
+Suppressing the summary under `--ci` was the other way to remove the duplicate.
+It was rejected: that deletes the count from a *passing* `--ci` run, which is
+where a mode-independent line is worth most, and makes the output depend on a
+flag.
+
+Dropping the counts from the error is also what keeps its fields honest.
+`Error()` was their only reader in production, so a sentinel that no longer
+formats them would have left `failed` and `total` reachable from tests alone.
 
 `main` is `os.Exit(cmd.Execute())` and `Execute` returns an `int`. Keeping
 `os.Exit` out of `cmd` is what makes the mapping testable.

@@ -132,6 +132,9 @@ printf 'checks:\n  - name: definitely-not-installed-xyzzy\n    type: binary\n' >
 expect 0 "doctor" -- doctor
 expect 1 "doctor --ci" -- doctor --ci
 assert_no_usage "doctor --ci"
+# The tally is a promise the README makes about any log, so assert it against
+# the real binary and not just the command under test.
+assert_contains "doctor --ci" "$stderr" "0 of 1 checks passed"
 
 echo "== config envprobe cannot build =="
 printf 'checks:\n  - name: x\n    type: nosuchtype\n' >envprobe.yaml

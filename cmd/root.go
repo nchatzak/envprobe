@@ -48,7 +48,7 @@ func exitCode(err error) int {
 	if err == nil {
 		return 0
 	}
-	if _, ok := errors.AsType[checksFailedError](err); ok {
+	if errors.Is(err, errChecksFailed) {
 		return 1
 	}
 	return 2

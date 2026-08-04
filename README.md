@@ -20,6 +20,7 @@ using /Users/you/envprobe.yaml
 ✓  postgres                2ms
 ✗  redis                   1ms
 ✓  docker-daemon           160ms
+5 of 7 checks passed
 ```
 
 ## Install
@@ -102,6 +103,11 @@ $ envprobe doctor --json | jq '.[] | select(.found | not) | .name'
 
 Each result carries `name`, `found` and `duration_ms`. `path` and `version` are
 present only when the check found them, so a port check reports neither.
+
+The `5 of 7 checks passed` line is a diagnostic, so it goes to stderr in both
+formats — stdout stays exactly the results array. It prints on every run that
+had checks to run, whether or not `--ci` is set, so one grep finds the tally in
+any log.
 
 ## Configuration
 

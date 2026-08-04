@@ -54,3 +54,13 @@ func status(found bool) string {
 	}
 	return "✗"
 }
+
+// PrintSummary writes a one-line count of how many checks passed. Zero results
+// write nothing.
+func PrintSummary(w io.Writer, results []Result) {
+	if len(results) == 0 {
+		return
+	}
+	passed := len(results) - CountFailed(results)
+	fmt.Fprintf(w, "%d of %d checks passed\n", passed, len(results))
+}

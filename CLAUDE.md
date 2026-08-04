@@ -32,9 +32,12 @@ an error), a registry entry, and an `example.yaml` stanza.
 
 ## Exit codes
 
-`exitCode` in `cmd/root.go` maps `checksFailedError` to 1 and everything else
-to 2, so a new error type lands in "could not check" by default. Anything that
-should exit 1 must reach that type. The table is in `doctor`'s `Long`.
+`exitCode` in `cmd/root.go` maps `errChecksFailed` to 1 and everything else to
+2, so a new error lands in "could not check" by default. Anything that should
+exit 1 must reach that sentinel. The table is in `doctor`'s `Long`.
+
+The count of what passed belongs to `PrintSummary` alone; `errChecksFailed`
+says only that the run failed. Do not put a tally back into an error message.
 
 ## Conventions
 

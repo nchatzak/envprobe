@@ -14,15 +14,8 @@ import (
 // there even though plain doctor treats an empty list as a valid choice.
 var errNoChecks = errors.New("no checks configured, so nothing was verified")
 
-// checksFailedError means the checks ran and some reported a problem.
-type checksFailedError struct {
-	failed int
-	total  int
-}
-
-func (e checksFailedError) Error() string {
-	return fmt.Sprintf("%d of %d checks failed", e.failed, e.total)
-}
+// errChecksFailed means the checks ran and some reported a problem.
+var errChecksFailed = errors.New("checks failed")
 
 func newDoctorCmd(load checkLoader) *cobra.Command {
 	cmd := &cobra.Command{
@@ -85,16 +78,12 @@ func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
 		return fmt.Errorf("rendering results: %w", err)
 	}
 
+	probe.PrintSummary(cmd.ErrOrStderr(), results)
+
 	// After render on purpose: --ci --json still emits its results before the
 	// non-zero exit.
-	if ci {
-		failedCount := probe.CountFailed(results)
-		if failedCount > 0 {
-			return checksFailedError{
-				failed: failedCount,
-				total:  len(results),
-			}
-		}
+	if ci && probe.CountFailed(results) > 0 {
+		return errChecksFailed
 	}
 	return nil
 }

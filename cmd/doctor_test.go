@@ -142,6 +142,38 @@ func TestDoctorJSON(t *testing.T) {
 	}
 }
 
+// The count is a diagnostic, so it goes to stderr under both formats. Asserting
+// its absence from stdout is the half that matters: on stdout it would be a
+// trailing line after the JSON array, and --json would stop parsing.
+func TestDoctorSummary(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{"text", nil},
+		{"json", []string{"--json"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, err := runDoctor(t, staticLoader(found("git"), missing("docker")), tt.args...)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			const want = "1 of 2 checks passed"
+			if !strings.Contains(stderr, want) {
+				t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+			}
+			if strings.Contains(stdout, want) {
+				t.Errorf("summary leaked into stdout:\n%s", stdout)
+			}
+		})
+	}
+}
+
 // Zero checks is valid config, so this exits 0 — the warning on stderr is the
 // only evidence doctor ran at all, since the table renderer emits nothing.
 func TestDoctorNoChecks(t *testing.T) {
@@ -205,25 +237,15 @@ func TestDoctorCINoChecks(t *testing.T) {
 	}
 }
 
-// TestDoctorCI asserts the type; this asserts the prose CI users actually read.
-// The counts differ so a transposed format string cannot pass.
-func TestChecksFailedErrorMessage(t *testing.T) {
-	t.Parallel()
-	got := checksFailedError{failed: 1, total: 3}.Error()
-	if want := "1 of 3 checks failed"; got != want {
-		t.Errorf("Error() = %q, want %q", got, want)
-	}
-}
-
 func TestDoctorCI(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name   string
-		checks []probe.Check
-		want   *checksFailedError // nil means: expect success
+		name    string
+		checks  []probe.Check
+		wantErr bool
 	}{
-		{"all pass", []probe.Check{found("git"), found("docker")}, nil},
-		{"one fails", []probe.Check{found("git"), missing("docker")}, &checksFailedError{failed: 1, total: 2}},
+		{"all pass", []probe.Check{found("git"), found("docker")}, false},
+		{"one fails", []probe.Check{found("git"), missing("docker")}, true},
 	}
 
 	for _, tt := range tests {
@@ -232,20 +254,32 @@ func TestDoctorCI(t *testing.T) {
 			stdout, stderr, err := runDoctor(t, staticLoader(tt.checks...), "--ci")
 			// A failing check is a runtime failure, not misuse: no usage block.
 			assertNoUsage(t, "doctor --ci", stdout, stderr)
-			if tt.want == nil {
+			if !tt.wantErr {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 				return
 			}
-			got, ok := errors.AsType[checksFailedError](err)
-			if !ok {
-				t.Fatalf("error = %v (%T), want checksFailedError", err, err)
-			}
-			if got != *tt.want {
-				t.Errorf("error = %+v, want %+v", got, *tt.want)
+			if !errors.Is(err, errChecksFailed) {
+				t.Fatalf("error = %v (%T), want errChecksFailed", err, err)
 			}
 		})
+	}
+}
+
+// The whole diagnostic stream of a failing --ci run, so a tally added back to
+// the error fails here however it is worded. Counting substrings instead would
+// only catch the wording that was removed.
+func TestDoctorCIStderr(t *testing.T) {
+	t.Parallel()
+	_, stderr, err := runDoctor(t, staticLoader(found("git"), missing("docker")), "--ci")
+	if !errors.Is(err, errChecksFailed) {
+		t.Fatalf("error = %v, want errChecksFailed", err)
+	}
+
+	want := "using " + fakeConfigPath + "\n1 of 2 checks passed\nError: checks failed\n"
+	if stderr != want {
+		t.Errorf("stderr = %q, want %q", stderr, want)
 	}
 }
 

@@ -104,6 +104,46 @@ func TestToJSONResults(t *testing.T) {
 	}
 }
 
+func TestPrintSummary(t *testing.T) {
+	tests := []struct {
+		name    string
+		results []Result
+		want    string
+	}{
+		{
+			name:    "all passed",
+			results: []Result{{Name: "git", Found: true}, {Name: "go", Found: true}},
+			want:    "2 of 2 checks passed\n",
+		},
+		{
+			name:    "some failed",
+			results: []Result{{Name: "git", Found: true}, {Name: "docker", Found: false}},
+			want:    "1 of 2 checks passed\n",
+		},
+		{
+			name:    "none passed",
+			results: []Result{{Name: "docker", Found: false}},
+			want:    "0 of 1 checks passed\n",
+		},
+		// doctor already warns that nothing was configured, so a "0 of 0" line
+		// on top of that reports a run that did not happen.
+		{
+			name:    "no results",
+			results: nil,
+			want:    "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var builder strings.Builder
+			PrintSummary(&builder, tt.results)
+			if got := builder.String(); got != tt.want {
+				t.Errorf("PrintSummary() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 var errWrite = errors.New("write error")
 
 type errWriter struct{}
