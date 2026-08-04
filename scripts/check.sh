@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 # Pre-commit checks for envprobe. Run from anywhere: ./scripts/check.sh
 set -u
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 failed=0
 
@@ -15,6 +15,7 @@ run() {
 		print "FAILED"
 		print -r -- "$output" | sed 's/^/    /'
 		failed=1
+		return 1
 	fi
 }
 
@@ -33,11 +34,22 @@ fi
 
 run "build " go build ./...
 run "vet   " go vet ./...
-run "test  " go test -race -cover ./...
+rm -f coverage.out
+if run "test  " go test -race -coverprofile=coverage.out ./...; then
+	# run() swallows go test's per-package coverage on success, so read the
+	# total back out of the profile.
+	print "  cover  ... $(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}')"
+fi
 
-# Optional: only runs if you have it installed.
+# CI always lints, so a missing golangci-lint is a gap in this run, not an
+# opt-out.
+lint_skipped=0
 if (( $+commands[golangci-lint] )); then
 	run "lint  " golangci-lint run
+else
+	print "  lint   ... SKIPPED"
+	print "    golangci-lint is not installed"
+	lint_skipped=1
 fi
 
 if (( failed )); then
@@ -45,4 +57,8 @@ if (( failed )); then
 	exit 1
 fi
 
-print "\nall checks passed"
+if (( lint_skipped )); then
+	print "\nall checks passed, but lint did not run"
+else
+	print "\nall checks passed"
+fi

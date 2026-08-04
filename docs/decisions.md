@@ -205,6 +205,25 @@ formats them would have left `failed` and `total` reachable from tests alone.
 `main` is `os.Exit(cmd.Execute())` and `Execute` returns an `int`. Keeping
 `os.Exit` out of `cmd` is what makes the mapping testable.
 
+## check.sh reports, CI gates
+
+`scripts/check.sh` prints a coverage total and warns when `golangci-lint` is
+missing. Neither of those fails the run.
+
+Coverage is a number to read, not a threshold. A minimum turns every honest
+refactor into an argument with a percentage, and the figure moves for reasons
+that have nothing to do with the change under review. `go test` writes the
+profile anyway, so showing the total costs one line -- and the total covers
+`cmd` and `internal/probe` only, since a package with no test files
+contributes nothing to a profile. `main` is covered by
+`scripts/exit-codes.sh`, which reports no coverage at all.
+
+A missing `golangci-lint` used to skip in silence, which let a green local run
+and a green CI run mean different things. It now prints `SKIPPED` and the
+closing line says lint did not run. Failing instead was rejected: CI lints on
+every push, so a second gate would only block a machine that has not installed
+the tool yet.
+
 ------------------------------------------------------------------------
 
 # Deferred
