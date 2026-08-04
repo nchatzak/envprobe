@@ -61,7 +61,34 @@ does not hold up the rest. A check that times out is reported as a failure.
 | `envprobe config init` | Write an example config to `./envprobe.yaml` (`-o` to change the path, `--force` to overwrite) |
 | `envprobe config validate [file]` | Parse a config without running anything |
 | `envprobe config example` | Print the annotated example config to stdout |
+| `envprobe completion <shell>` | Print a shell completion script (`bash`, `zsh`, `fish`) |
 | `envprobe --version` | Print the version (`-v` works too) |
+
+### Shell completion
+
+`envprobe completion <shell>` prints a script — it does not install one. Until
+that script is where your shell looks, TAB does nothing and nothing says why.
+On macOS with zsh:
+
+```zsh
+envprobe completion zsh > $(brew --prefix)/share/zsh/site-functions/_envprobe
+```
+
+Then **restart your shell**; the session that wrote the file will not pick it
+up. `envprobe completion <shell> --help` has the paths and setup steps for each
+shell — zsh, bash and fish, on both macOS and Linux — including the
+`bash-completion` package that bash needs.
+
+Two things that help does not mention:
+
+- zsh ignores the file unless its completion system is on, silently. Check with
+  `(( $+functions[compdef] )) && echo on || echo off`. If that prints `off`,
+  add `autoload -Uz compinit && compinit` to `~/.zshrc` — but check first, as
+  many tools run it for you when sourced. To confirm envprobe itself loaded:
+  `print -l ${(k)_comps} | grep envprobe`.
+- The script contains no command or flag names — it asks the binary on your
+  `PATH` as you type, so upgrades bring their own and it never needs
+  regenerating.
 
 ### JSON output
 
