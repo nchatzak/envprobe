@@ -6,7 +6,7 @@
 #   1  the checks ran and at least one failed (--ci only)
 #   2  envprobe could not check
 #
-# This is the automated form of test_steps.md. It runs the shipped binary
+# This is the automated form of the manual walkthrough. It runs the shipped binary
 # rather than a test one, so it is the only thing covering main, os.Exit and
 # Execute -- and the only place the real config search path is exercised.
 #

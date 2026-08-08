@@ -1,4 +1,5 @@
 # Binaries and build outputs
+/envprobe
 /bin/
 /dist/
 /build/
