@@ -18,7 +18,7 @@ using /Users/you/envprobe.yaml
 ✓  Go             1.26.5   6ms
 ✗  terraform               0s
 ✓  postgres                2ms
-✗  redis                   1ms
+✗  redis                   1ms  (connection refused)
 ✓  docker-daemon           160ms
 5 of 7 checks passed
 ```
@@ -51,6 +51,10 @@ output.
 
 Checks run concurrently, each with a 5-second timeout, so one unreachable host
 does not hold up the rest. A check that times out is reported as a failure.
+
+A row says why in parentheses when the `✗` alone would leave you guessing —
+`redis` above was refused rather than slow. `terraform` gets none because
+missing from `PATH` is the whole story.
 
 ### Commands
 
@@ -104,19 +108,9 @@ $ envprobe doctor --json | jq '.[] | select(.found | not) | .name'
 Each result carries `name`, `found` and `duration_ms`. `path` and `version` are
 present only when the check found them, so a port check reports neither.
 
-`problem` names the cause, and only when `found` alone would be ambiguous:
-`connection refused`, `unreachable` and `timed out` are all a port that did not
-answer. A binary that is not on `PATH` carries none, because `found: false`
-says that. It can appear on a passing check — wrong `version_args` give
+`problem` carries the same cause the table prints in parentheses, under the
+same rule. It is not limited to failures: wrong `version_args` give
 `found: true` with `problem: version command failed`.
-
-In the table it follows the row in parentheses:
-
-```console
-$ envprobe doctor
-✓  git    2.51.0  12ms
-✗  redis          3ms  (connection refused)
-```
 
 The `5 of 7 checks passed` line is a diagnostic, so it goes to stderr in both
 formats — stdout stays exactly the results array. It prints on every run that
