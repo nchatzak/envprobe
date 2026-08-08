@@ -404,3 +404,9 @@ which expands to nothing wherever that variable is unset. It deliberately does
 *not* use `os.UserConfigDir()`: that resolves to `~/Library/Application
 Support` on macOS, which is not where a dev CLI is expected to look.
 `~/.config/envprobe` is.
+
+## Release notes carry a short commit SHA
+
+`changelog.abbrev` is `7` rather than the `-1` that strips the hash: GitHub
+autolinks any bare SHA of seven characters or more, so the prefix links to the
+commit for free. The full hash `abbrev: 0` leaves would crowd out the subject.

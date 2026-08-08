@@ -29,7 +29,7 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
 changelog:
-  abbrev: -1
+  abbrev: 7
   filters:
     include:
       - "^feat:"
