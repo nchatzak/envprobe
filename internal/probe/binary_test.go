@@ -31,6 +31,7 @@ func TestBinaryCheckRun(t *testing.T) {
 		wantName      string
 		wantFound     bool
 		wantVersionRe string
+		wantProblem   string
 	}{
 		{
 			name:          "version parsed",
@@ -39,6 +40,8 @@ func TestBinaryCheckRun(t *testing.T) {
 			wantFound:     true,
 			wantVersionRe: `^\d+\.\d+`,
 		},
+		// A binary that is not on PATH reports Found false and nothing else:
+		// the status already says what went wrong.
 		{
 			name:          "missing target",
 			check:         binaryCheck{name: "Nonexistent Tool", target: "nonexistenttool"},
@@ -52,6 +55,7 @@ func TestBinaryCheckRun(t *testing.T) {
 			wantName:      "go",
 			wantFound:     true,
 			wantVersionRe: `^$`,
+			wantProblem:   problemVersionCommandFailed,
 		},
 	}
 
@@ -69,6 +73,10 @@ func TestBinaryCheckRun(t *testing.T) {
 
 			if !regexp.MustCompile(tt.wantVersionRe).MatchString(got.Version) {
 				t.Errorf("Version = %q, want match %q", got.Version, tt.wantVersionRe)
+			}
+
+			if got.Problem != tt.wantProblem {
+				t.Errorf("Problem = %q, want %q", got.Problem, tt.wantProblem)
 			}
 		})
 	}

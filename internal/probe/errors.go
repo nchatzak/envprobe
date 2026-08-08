@@ -46,3 +46,9 @@ func (e *CheckError) Error() string {
 func (e *CheckError) Unwrap() error {
 	return e.Err
 }
+
+// isType reports whether err, or any error it wraps, is an E.
+func isType[E error](err error) bool {
+	_, ok := errors.AsType[E](err)
+	return ok
+}

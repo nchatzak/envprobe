@@ -36,6 +36,13 @@ func TestRender(t *testing.T) {
 				{Name: "nonexistenttool2", Found: false, Version: ""},
 			},
 		},
+		{
+			name: "problems are shown",
+			results: []Result{
+				{Name: "git", Found: true, Version: "", Problem: problemVersionCommandFailed},
+				{Name: "postgres", Found: false, Problem: problemConnectionRefused},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -61,6 +68,10 @@ func TestRender(t *testing.T) {
 
 				if !strings.Contains(gotOutput, status(r.Found)) {
 					t.Errorf("Render() output does not contain expected status for %q", r.Name)
+				}
+
+				if r.Problem != "" && !strings.Contains(gotOutput, "("+r.Problem+")") {
+					t.Errorf("Render() output does not contain expected problem %q", r.Problem)
 				}
 			}
 		})
@@ -91,6 +102,17 @@ func TestToJSONResults(t *testing.T) {
 			want: []jsonResult{
 				{Name: "git", Found: true, Version: "2.30.0", Path: "/opt/git", DurationMs: 1500},
 				{Name: "go", Found: true, Version: "1.16.0", Path: "/opt/go", DurationMs: 2500},
+			},
+		},
+		{
+			name: "some tools not found/with problems",
+			input: []Result{
+				{Name: "git", Found: true, Version: "", Problem: problemVersionCommandFailed},
+				{Name: "postgres", Found: false, Problem: problemConnectionRefused},
+			},
+			want: []jsonResult{
+				{Name: "git", Found: true, Version: "", Problem: problemVersionCommandFailed},
+				{Name: "postgres", Found: false, Problem: problemConnectionRefused},
 			},
 		},
 	}
@@ -181,6 +203,34 @@ func TestRenderJSON(t *testing.T) {
 
 		if _, ok := got[0]["path"]; ok {
 			t.Errorf("RenderJSON() output should not contain 'path' field for nonexistent tool")
+		}
+
+		if _, ok := got[0]["problem"]; ok {
+			t.Errorf("RenderJSON() output should not contain 'problem' field for nonexistent tool")
+		}
+	})
+
+	t.Run("includes the problem when one is set", func(t *testing.T) {
+		results := []Result{
+			{Name: "postgres", Found: false, Problem: problemConnectionRefused},
+		}
+		var builder strings.Builder
+		err := RenderJSON(&builder, results)
+		if err != nil {
+			t.Fatalf("RenderJSON() returned unexpected error: %v", err)
+		}
+
+		var got []map[string]any
+		if err := json.Unmarshal([]byte(builder.String()), &got); err != nil {
+			t.Fatalf("output is not valid JSON: %v", err)
+		}
+
+		if len(got) != 1 {
+			t.Fatalf("expected 1 result, got %d", len(got))
+		}
+
+		if value, ok := got[0]["problem"]; !ok || value != problemConnectionRefused {
+			t.Errorf("RenderJSON() problem = %v, want %q", value, problemConnectionRefused)
 		}
 	})
 

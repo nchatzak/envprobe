@@ -14,6 +14,7 @@ type jsonResult struct {
 	Path       string `json:"path,omitempty"`
 	Version    string `json:"version,omitempty"`
 	DurationMs int64  `json:"duration_ms"`
+	Problem    string `json:"problem,omitempty"`
 }
 
 func RenderJSON(w io.Writer, results []Result) error {
@@ -33,6 +34,7 @@ func toJSONResults(results []Result) []jsonResult {
 			Path:       result.Path,
 			Version:    result.Version,
 			DurationMs: result.Duration.Milliseconds(),
+			Problem:    result.Problem,
 		}
 	}
 	return jsonResults
@@ -42,7 +44,11 @@ func Render(w io.Writer, results []Result) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 
 	for _, result := range results {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", status(result.Found), result.Name, result.Version, result.Duration.Round(time.Millisecond))
+		var problemStr string
+		if result.Problem != "" {
+			problemStr = fmt.Sprintf("\t(%s)", result.Problem)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s%s\n", status(result.Found), result.Name, result.Version, result.Duration.Round(time.Millisecond), problemStr)
 	}
 
 	return tw.Flush()

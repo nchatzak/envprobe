@@ -23,6 +23,8 @@ func (c binaryCheck) Run(ctx context.Context) Result {
 		output, err := exec.CommandContext(ctx, c.target, c.versionArgs...).CombinedOutput()
 		if err == nil {
 			result.Version = parseVersionOutput(string(output))
+		} else {
+			result.Problem = problemVersionCommandFailed
 		}
 	}
 

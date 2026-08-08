@@ -260,14 +260,48 @@ without a seam that production does not use. `newRootCmd` is the only caller.
 
 ## `Result` is a junk drawer
 
-`Path` and `Version` are meaningless for `portCheck`, which also throws away
-the distinction between "connection refused" and "timed out" (both available
-via `net.Error.Timeout()` / `errors.Is(err, context.DeadlineExceeded)`).
+`Path` and `Version` are meaningless for `portCheck`.
 
 Left as-is deliberately: it is a flat struct at the output boundary, the
 `jsonResult` DTO it converts to marks those fields `omitempty` so they do not
 surface, and a uniform `Render` is worth more today than precise types. Revisit
 when a kind needs a field the others cannot fake.
+
+`Problem` is not that trigger firing: every check means it the same way, and a
+flat struct is the right home for a field like that.
+
+### `Problem` is set on ambiguity, not on failure
+
+A check fills it only when its outcome has more than one cause. `portCheck`
+always does. `binaryCheck` fills it when the version command fails and not when
+the binary is missing, since `Found: false` says that already -- which is why it
+can also sit on a passing row.
+
+### `Problem` is a fixed vocabulary, not the error text
+
+Unexported constants in `check.go`, one definition site, referenced by tests
+too. `err.Error()` leaks `dial tcp 127.0.0.1:60706: connect: ...`, reports
+`exit status 1` for both of `dockerDaemonCheck`'s causes, and can only be
+asserted by matching message text. Trimming it is the same mistake: the wording
+is not a contract and differs by platform. Nothing enforces the set -- a named
+string type would still accept any literal.
+
+### The dial default names no cause
+
+It was `connection refused`, a diagnosis `dialProblem` never made:
+`EHOSTUNREACH` and `ENETUNREACH` return just as fast, so a laptop with the VPN
+down called every port refused. `ECONNREFUSED` now has to match to be named and
+the default is `connection failed`.
+
+`timed out` uses `net.Error.Timeout()`, not `context.DeadlineExceeded`: three
+producers race -- context deadline, socket deadline, `ETIMEDOUT` -- all print
+`i/o timeout`, and matching one made the label intermittent, 1 run in 60.
+`Timeout()` is broader than those three by design; a `*net.DNSError` that timed
+out lands there rather than on `host not found`.
+
+The errno arms are POSIX-only. Windows `syscall.ECONNREFUSED` is an
+`APPLICATION_ERROR` value that never matches Winsock's 10061, so those arms
+degrade to `connection failed` until someone maps the `WSAE*` ones.
 
 ## `dockerDaemonCheck` has no tests
 
@@ -278,6 +312,10 @@ there would break `TestLoadChecks`.
 
 Parked on the design question of whether a seam that exists only for tests
 earns its keep. Tests otherwise spawn no external processes.
+
+`Problem` raised the cost: `docker not on PATH` and `daemon not responding` are
+two branches no test reaches, and the first cut assigned both -- the second
+unconditionally -- so every failure said the daemon was down.
 
 ## No structured logging yet
 

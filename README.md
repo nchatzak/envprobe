@@ -104,6 +104,20 @@ $ envprobe doctor --json | jq '.[] | select(.found | not) | .name'
 Each result carries `name`, `found` and `duration_ms`. `path` and `version` are
 present only when the check found them, so a port check reports neither.
 
+`problem` names the cause, and only when `found` alone would be ambiguous:
+`connection refused`, `unreachable` and `timed out` are all a port that did not
+answer. A binary that is not on `PATH` carries none, because `found: false`
+says that. It can appear on a passing check — wrong `version_args` give
+`found: true` with `problem: version command failed`.
+
+In the table it follows the row in parentheses:
+
+```console
+$ envprobe doctor
+✓  git    2.51.0  12ms
+✗  redis          3ms  (connection refused)
+```
+
 The `5 of 7 checks passed` line is a diagnostic, so it goes to stderr in both
 formats — stdout stays exactly the results array. It prints on every run that
 had checks to run, whether or not `--ci` is set, so one grep finds the tally in
