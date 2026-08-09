@@ -122,17 +122,21 @@ any log.
 Every check has the same three fields:
 
 - **`name`** — the label in the output and the key under `--json`. Must be unique.
-- **`type`** — `binary`, `port`, or `docker-daemon`.
+- **`type`** — `binary`, `port`, `docker-daemon`, or `env`.
 - **`with`** — the payload for that type. Keys are validated: an unknown key is
   an error that names the key, so a typo fails loudly instead of being ignored.
 
-The three types:
+The four types:
 
 | Type | Checks | `with:` |
 | --- | --- | --- |
 | `binary` | The executable is on `PATH`, and its version if you ask for one | `target` (defaults to `name`), `version_args` (optional) |
 | `port` | Something is listening, which proves a service is running rather than merely installed | `target`, required, as `"host:port"` |
 | `docker-daemon` | `docker info` answers, which the binary check alone cannot tell you | none |
+| `env` | An environment variable is set, and matches a pattern if you ask for one | `target` (defaults to `name`), `matches` (optional regexp) |
+
+An `env` check with no `matches` asks only whether the variable is set, so an
+empty value passes. Write `matches: "."` to require a non-empty one.
 
 For a worked config with every type and the pitfalls annotated — which tools
 print their version to stderr, which want no dashes at all:

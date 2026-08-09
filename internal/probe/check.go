@@ -32,6 +32,9 @@ const (
 	problemVersionCommandFailed = "version command failed"
 	problemDockerNotOnPath      = "docker not on PATH"
 	problemDaemonNotResponding  = "daemon not responding"
+	problemNotSet               = "not set"
+	problemSetButEmpty          = "set but empty"
+	problemDoesNotMatch         = "does not match"
 )
 
 // CountFailed reports how many checks did not pass.

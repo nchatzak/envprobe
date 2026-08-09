@@ -3,7 +3,7 @@
 # Every check has the same three fields:
 #
 #   name  - the label shown in output, and the key under `--json`. Must be unique.
-#   type  - which kind of check to run. One of: binary, port, docker-daemon.
+#   type  - which kind of check to run. One of: binary, port, docker-daemon, env.
 #   with  - the payload for that kind. Keys are validated: an unknown key is an
 #           error naming the key, so a typo fails loudly instead of being ignored.
 #
@@ -56,3 +56,24 @@ checks:
   # the binary check alone cannot tell you. Takes no `with:` payload.
   - name: docker-daemon
     type: docker-daemon
+
+  # type: env — is an environment variable set? Half of "my machine is set up
+  # wrong" is an unset or stale JAVA_HOME, AWS_PROFILE or GOPRIVATE, and nothing
+  # else here can see one.
+  #
+  #   target   the variable to read. Defaults to `name`, as with binary.
+  #   matches  optional. A regular expression the value must satisfy. Without it
+  #            the check only asks whether the variable is set, and an empty
+  #            value passes. Write "." to require a non-empty one.
+  #
+  #            The pattern is a search, not an equality test: "prod" matches
+  #            "nonprod" too. Anchor it as "^prod$" to pin an exact value.
+  - name: AWS_PROFILE
+    type: env
+
+  # `name` is a display label here too, so `target` names the real variable.
+  - name: Java home
+    type: env
+    with:
+      target: JAVA_HOME
+      matches: "."

@@ -21,6 +21,7 @@ var registry = map[string]checkFactory{
 	"port":          newPortCheck,
 	"binary":        newBinaryCheck,
 	"docker-daemon": newDockerDaemonCheck,
+	"env":           newEnvCheck,
 }
 
 func decodeWith(with map[string]any, out any) error {

@@ -303,6 +303,22 @@ The errno arms are POSIX-only. Windows `syscall.ECONNREFUSED` is an
 `APPLICATION_ERROR` value that never matches Winsock's 10061, so those arms
 degrade to `connection failed` until someone maps the `WSAE*` ones.
 
+## `env` reports existence, not usefulness
+
+`Found` means the variable is set; an empty value passes unless `matches` says
+otherwise. Empty-always-fails was rejected because it makes plain existence
+inexpressible: no config could then say "just tell me it is set", and a pattern
+cannot opt out of a rule applied before it runs. Strictness costs one line,
+`matches: "."`.
+
+`matches` compiles in `newEnvCheck`, so a bad pattern is a config error that
+`config validate` reports before anything runs.
+
+`Found: false` has three causes here, so `Problem` names all of them. `set but
+empty` is reported only when an empty value fails a pattern, telling
+`JAVA_HOME=""` apart from `JAVA_HOME=/wrong` without printing values that may
+be secrets.
+
 ## `dockerDaemonCheck` has no tests
 
 It shells out to `docker info` with no seam for faking `exec`. The sketch is a

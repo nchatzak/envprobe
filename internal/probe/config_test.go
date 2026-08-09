@@ -2,11 +2,20 @@ package probe
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
+
+// comparePatterns compares compiled patterns by source.
+var comparePatterns = cmp.Comparer(func(x, y *regexp.Regexp) bool {
+	if x == nil || y == nil {
+		return x == y
+	}
+	return x.String() == y.String()
+})
 
 func TestLoadChecks(t *testing.T) {
 	tests := []struct {
@@ -34,6 +43,11 @@ func TestLoadChecks(t *testing.T) {
 			raws: []RawCheck{{Name: "docker", Type: "docker-daemon"}},
 			want: []Check{dockerDaemonCheck{name: "docker"}},
 		},
+		{
+			name: "env check",
+			raws: []RawCheck{{Name: "Java home", Type: "env", With: map[string]any{"target": "JAVA_HOME", "matches": "^/.*jdk"}}},
+			want: []Check{envCheck{name: "Java home", target: "JAVA_HOME", matches: regexp.MustCompile("^/.*jdk")}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -42,7 +56,7 @@ func TestLoadChecks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("LoadChecks() error = %v", err)
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(portCheck{}, binaryCheck{}, dockerDaemonCheck{})); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(portCheck{}, binaryCheck{}, dockerDaemonCheck{}, envCheck{}), comparePatterns); diff != "" {
 				t.Errorf("LoadChecks() mismatch (-want +got):\n%s", diff)
 			}
 		})
