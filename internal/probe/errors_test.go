@@ -16,7 +16,7 @@ func TestCheckErrorMessage(t *testing.T) {
 	}{
 		{
 			name: "with name",
-			err:  &CheckError{Index: 3, Name: "pg", Err: ErrUnknownType},
+			err:  &CheckError{Index: 3, Name: "pg", Err: ErrUnknownCheckType},
 			want: `checks[3] "pg": unknown check type`,
 		},
 		{

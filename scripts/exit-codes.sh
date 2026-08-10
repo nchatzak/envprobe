@@ -140,6 +140,8 @@ echo "== config envprobe cannot build =="
 printf 'checks:\n  - name: x\n    type: nosuchtype\n' >envprobe.yaml
 expect 2 "unknown check type" -- doctor
 assert_contains "unknown check type" "$stderr" "nosuchtype"
+# The message offers the registry, which is the only fix a reader can act on.
+assert_contains "unknown check type" "$stderr" "one of: "
 # A file was read, so the run names it even though the build failed.
 assert_contains "unknown check type" "$stderr" "using $work/envprobe.yaml"
 printf 'checks: [\n' >envprobe.yaml

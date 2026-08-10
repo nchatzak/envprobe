@@ -150,8 +150,8 @@ func TestConfiguredChecksUnknownType(t *testing.T) {
 	writeFile(t, testConfigFileName, "checks:\n  - name: alpha\n    type: nonsense\n")
 
 	checks, path, err := configuredChecks()
-	if !errors.Is(err, probe.ErrUnknownType) {
-		t.Fatalf("configuredChecks() = %#v, %v; want ErrUnknownType", checks, err)
+	if !errors.Is(err, probe.ErrUnknownCheckType) {
+		t.Fatalf("configuredChecks() = %#v, %v; want ErrUnknownCheckType", checks, err)
 	}
 
 	// A file was read, so the caller can still name it. errors.Is cannot see

@@ -3,6 +3,9 @@ package probe
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
 )
@@ -22,6 +25,11 @@ var registry = map[string]checkFactory{
 	"binary":        newBinaryCheck,
 	"docker-daemon": newDockerDaemonCheck,
 	"env":           newEnvCheck,
+}
+
+// knownKinds lists the registered kinds, sorted, for an error message to offer.
+func knownKinds() string {
+	return strings.Join(slices.Sorted(maps.Keys(registry)), ", ")
 }
 
 func decodeWith(with map[string]any, out any) error {
@@ -61,7 +69,7 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 			errs = append(errs, &CheckError{
 				Index: i,
 				Name:  raw.Name,
-				Err:   ErrTypeRequired,
+				Err:   fmt.Errorf("%w (one of: %s)", ErrCheckTypeRequired, knownKinds()),
 			})
 			continue
 		}
@@ -71,7 +79,7 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 			errs = append(errs, &CheckError{
 				Index: i,
 				Name:  raw.Name,
-				Err:   fmt.Errorf("%w %q", ErrUnknownType, raw.Type),
+				Err:   fmt.Errorf("%w %q (one of: %s)", ErrUnknownCheckType, raw.Type, knownKinds()),
 			})
 			continue
 		}

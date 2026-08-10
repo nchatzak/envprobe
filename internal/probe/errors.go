@@ -14,11 +14,13 @@ var (
 	ErrNameRequired = errors.New("name is required")
 	// ErrDuplicateName means an earlier entry already claimed that name.
 	ErrDuplicateName = errors.New("duplicate check name")
-	// ErrTypeRequired means the entry has no type.
-	ErrTypeRequired = errors.New("type is required")
-	// ErrUnknownType means the type is not in the registry. It is wrapped with
-	// the offending type name, which the sentinel alone cannot carry.
-	ErrUnknownType = errors.New("unknown check type")
+	// ErrCheckTypeRequired means the entry has no type. It is wrapped with the
+	// registered kinds.
+	ErrCheckTypeRequired = errors.New("check type is required")
+	// ErrUnknownCheckType means the type is not in the registry. It is wrapped
+	// with the offending type name and the registered kinds, neither of which
+	// the sentinel alone can carry.
+	ErrUnknownCheckType = errors.New("unknown check type")
 	// ErrTargetRequired means a kind that needs an explicit target did not get
 	// one. Only port returns it: binary defaults target to the check name, and
 	// docker-daemon takes no payload.
@@ -33,7 +35,7 @@ type CheckError struct {
 	Err   error  // the underlying reason, reachable via errors.Is
 }
 
-// Error renders as: checks[3] "pg": unknown check type "prot"
+// Error renders as: checks[3] "pg": unknown check type "prot" (one of: ...)
 // The quoted name is dropped when there is none to show.
 func (e *CheckError) Error() string {
 	if e.Name == "" {

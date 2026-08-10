@@ -82,7 +82,8 @@ should mean "writes a file".
 ## Errors are values
 
 `internal/probe/errors.go` holds the sentinels (`ErrNameRequired`,
-`ErrDuplicateName`, `ErrTypeRequired`, `ErrUnknownType`, `ErrTargetRequired`)
+`ErrDuplicateName`, `ErrCheckTypeRequired`, `ErrUnknownCheckType`,
+`ErrTargetRequired`)
 and `CheckError{Index, Name, Err}`, shaped after `fs.PathError` -- context
 fields plus a wrapped cause, with `Unwrap()` so the sentinel underneath stays
 reachable. The sentinel answers *what* failed; `CheckError` answers *where*.

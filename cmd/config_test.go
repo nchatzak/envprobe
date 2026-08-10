@@ -97,8 +97,8 @@ func TestConfigValidateBadType(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error, got none")
 	}
-	if !errors.Is(err, probe.ErrUnknownType) {
-		t.Errorf("expected %q, got %q", probe.ErrUnknownType, err)
+	if !errors.Is(err, probe.ErrUnknownCheckType) {
+		t.Errorf("expected %q, got %q", probe.ErrUnknownCheckType, err)
 	}
 	// Named above the error, not inside it: LoadChecks joins its failures, so a
 	// prefix would label only the first entry of the set.

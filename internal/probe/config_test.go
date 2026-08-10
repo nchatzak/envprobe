@@ -86,14 +86,18 @@ func TestLoadChecksErrors(t *testing.T) {
 			wantErrs: []error{ErrDuplicateName},
 		},
 		{
-			name:     "missing type",
-			raws:     []RawCheck{{Name: "Name1"}},
-			wantErrs: []error{ErrTypeRequired},
+			// Both type failures offer the registry, so the message says what a
+			// good value looks like. docker-daemon stands in for the whole list.
+			name:            "missing type",
+			raws:            []RawCheck{{Name: "Name1"}},
+			wantErrContains: []string{"one of: ", "docker-daemon"},
+			wantErrs:        []error{ErrCheckTypeRequired},
 		},
 		{
-			name:     "unknown type",
-			raws:     []RawCheck{{Name: "Name1", Type: "anotherType"}},
-			wantErrs: []error{ErrUnknownType},
+			name:            "unknown type",
+			raws:            []RawCheck{{Name: "Name1", Type: "anotherType"}},
+			wantErrContains: []string{`"anotherType"`, "one of: ", "docker-daemon"},
+			wantErrs:        []error{ErrUnknownCheckType},
 		},
 		{
 			name:     "port without target",
@@ -120,7 +124,7 @@ func TestLoadChecksErrors(t *testing.T) {
 		{
 			name:     "two bad entries",
 			raws:     []RawCheck{{Name: "", Type: "binary"}, {Name: "x", Type: "prot"}},
-			wantErrs: []error{ErrNameRequired, ErrUnknownType},
+			wantErrs: []error{ErrNameRequired, ErrUnknownCheckType},
 		},
 	}
 
