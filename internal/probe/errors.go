@@ -22,9 +22,11 @@ var (
 	// the sentinel alone can carry.
 	ErrUnknownCheckType = errors.New("unknown check type")
 	// ErrTargetRequired means a kind that needs an explicit target did not get
-	// one. Only port returns it: binary defaults target to the check name, and
-	// docker-daemon takes no payload.
+	// one.
 	ErrTargetRequired = errors.New("target is required")
+	// ErrUnknownPathKind means that the provided kind is not supported.
+	// Used in path check, where kind can be file or dir.
+	ErrUnknownPathKind = errors.New("unknown path kind")
 )
 
 // CheckError says where in the config the problem is; the wrapped Err says

@@ -320,6 +320,20 @@ empty` is reported only when an empty value fails a pattern, telling
 `JAVA_HOME=""` apart from `JAVA_HOME=/wrong` without printing values that may
 be secrets.
 
+## `path` expands `~` when it builds the check
+
+`newPathCheck` resolves a leading `~` and stores the result, so an unresolvable
+home directory is a config error `config validate` catches rather than a run-time
+one. Only `~` and `~/` expand; `~backup` is a legal filename and stays literal. A
+relative target stays relative, which is what makes a repo-local `target: .env`
+worth writing. `os.Stat` follows symlinks: users care whether the tool reading
+that path finds something, not how it is stored.
+
+`Found: false` has five causes and `Problem` names four. Plain absence stays
+bare, as with `binary`, since `Found: false` already says it; every other stat
+failure is named, so a symlink loop or a path under a file cannot pass for a
+missing one.
+
 ## `dockerDaemonCheck` has no tests
 
 It shells out to `docker info` with no seam for faking `exec`. The sketch is a

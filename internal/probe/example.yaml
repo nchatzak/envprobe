@@ -3,7 +3,7 @@
 # Every check has the same three fields:
 #
 #   name  - the label shown in output, and the key under `--json`. Must be unique.
-#   type  - which kind of check to run. One of: binary, port, docker-daemon, env.
+#   type  - which kind of check to run. One of: binary, port, docker-daemon, env, path.
 #   with  - the payload for that kind. Keys are validated: an unknown key is an
 #           error naming the key, so a typo fails loudly instead of being ignored.
 #
@@ -77,3 +77,33 @@ checks:
     with:
       target: JAVA_HOME
       matches: "."
+
+  # type: path — does a file or directory exist? For the things a tool reads
+  # rather than the tool itself: an SSH config, cloud credentials, a mounted
+  # volume, a repo's .env.
+  #
+  #   target  required — `name` is a display label here, never a path. A leading
+  #           ~ expands to your home directory; anywhere else it is a literal
+  #           character. A relative path resolves against the directory you run
+  #           envprobe from, not the one the config file sits in.
+  #   kind    optional: file | dir. Omit it and either one passes; set it to
+  #           tell "the wrong thing is there" from "nothing is there".
+  #
+  #           A symlink is followed, so `kind: file` passes on a link to one.
+  - name: ssh config
+    type: path
+    with:
+      target: ~/.ssh/config
+      kind: file
+
+  - name: kube config dir
+    type: path
+    with:
+      target: ~/.kube
+      kind: dir
+
+  # No kind — this only asks whether something is there.
+  - name: aws credentials
+    type: path
+    with:
+      target: ~/.aws/credentials

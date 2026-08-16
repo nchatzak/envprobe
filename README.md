@@ -105,8 +105,11 @@ $ envprobe doctor --json | jq '.[] | select(.found | not) | .name'
 "redis"
 ```
 
-Each result carries `name`, `found` and `duration_ms`. `path` and `version` are
-present only when the check found them, so a port check reports neither.
+Each result carries `name`, `found` and `duration_ms`. `version` and `path`
+appear only when a check has one to report, so a port check has neither. A
+binary check drops `path` when the executable is missing; a path check keeps it
+either way, since the expanded target is the thing worth seeing when the check
+failed.
 
 `problem` carries the same cause the table prints in parentheses, under the
 same rule. It is not limited to failures: wrong `version_args` give
@@ -122,11 +125,11 @@ any log.
 Every check has the same three fields:
 
 - **`name`** — the label in the output and the key under `--json`. Must be unique.
-- **`type`** — `binary`, `port`, `docker-daemon`, or `env`.
+- **`type`** — `binary`, `port`, `docker-daemon`, `env`, or `path`.
 - **`with`** — the payload for that type. Keys are validated: an unknown key is
   an error that names the key, so a typo fails loudly instead of being ignored.
 
-The four types:
+The five types:
 
 | Type | Checks | `with:` |
 | --- | --- | --- |
@@ -134,9 +137,17 @@ The four types:
 | `port` | Something is listening, which proves a service is running rather than merely installed | `target`, required, as `"host:port"` |
 | `docker-daemon` | `docker info` answers, which the binary check alone cannot tell you | none |
 | `env` | An environment variable is set, and matches a pattern if you ask for one | `target` (defaults to `name`), `matches` (optional regexp) |
+| `path` | A file or directory exists, for the things a tool reads rather than the tool itself | `target`, required, `kind` (optional, `file` or `dir`) |
 
 An `env` check with no `matches` asks only whether the variable is set, so an
 empty value passes. Write `matches: "."` to require a non-empty one.
+
+A `path` check takes no default from `name`, since a label like `ssh config` is
+not a path. A leading `~` expands to your home directory; anywhere else it is a
+literal character, so `~backup` stays `~backup`. A relative target resolves
+against the directory you run envprobe from, not the one the config file sits
+in. Symlinks are followed, so `kind: file` passes on a link to a file. Without
+`kind`, a file and a directory both pass.
 
 For a worked config with every type and the pitfalls annotated — which tools
 print their version to stderr, which want no dashes at all:

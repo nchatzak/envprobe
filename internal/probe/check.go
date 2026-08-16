@@ -35,6 +35,10 @@ const (
 	problemNotSet               = "not set"
 	problemSetButEmpty          = "set but empty"
 	problemDoesNotMatch         = "does not match"
+	problemPermissionDenied     = "permission denied"
+	problemNotAFile             = "not a file"
+	problemNotADirectory        = "not a directory"
+	problemCannotRead           = "cannot read path"
 )
 
 // CountFailed reports how many checks did not pass.

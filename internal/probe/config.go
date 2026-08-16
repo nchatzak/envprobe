@@ -25,6 +25,7 @@ var registry = map[string]checkFactory{
 	"binary":        newBinaryCheck,
 	"docker-daemon": newDockerDaemonCheck,
 	"env":           newEnvCheck,
+	"path":          newPathCheck,
 }
 
 // knownKinds lists the registered kinds, sorted, for an error message to offer.
