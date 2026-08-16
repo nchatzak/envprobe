@@ -16,7 +16,9 @@ func TestExampleConfig(t *testing.T) {
 	}
 
 	var raws []RawCheck
-	if err := v.UnmarshalKey("checks", &raws); err != nil {
+	// StrictKeys because the command does: without it the shipped example
+	// could carry a key config init writes and doctor then refuses.
+	if err := v.UnmarshalKey("checks", &raws, StrictKeys); err != nil {
 		t.Fatalf("invalid checks config: %v", err)
 	}
 

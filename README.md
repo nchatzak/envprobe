@@ -128,8 +128,15 @@ Every check has the same three fields:
 
 - **`name`** — the label in the output and the key under `--json`. Must be unique.
 - **`type`** — `binary`, `port`, `docker-daemon`, `env`, or `path`.
-- **`with`** — the payload for that type. Keys are validated: an unknown key is
-  an error that names the key, so a typo fails loudly instead of being ignored.
+- **`with`** — the payload for that type.
+
+Keys on a check and keys inside `with` are both validated: an unknown key is an
+error that names the key, so a typo fails loudly instead of being ignored. A
+key beside `with` is caught before any check is built, so it is reported on its
+own — fix it and the next run reports whatever is wrong inside `with`.
+
+The `checks:` key itself is not. A file that misspells it parses as a file with
+no checks in it, so `doctor` warns and exits 0 while `--ci` exits 2.
 
 The five types:
 

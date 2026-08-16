@@ -44,7 +44,7 @@ func configuredChecks() ([]probe.Check, string, error) {
 
 func checksFromConfig(v *viper.Viper) ([]probe.Check, error) {
 	var raws []probe.RawCheck
-	if err := v.UnmarshalKey("checks", &raws); err != nil {
+	if err := v.UnmarshalKey("checks", &raws, probe.StrictKeys); err != nil {
 		return nil, fmt.Errorf("invalid checks config: %w", err)
 	}
 	return probe.LoadChecks(raws)

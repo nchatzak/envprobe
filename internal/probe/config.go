@@ -33,6 +33,13 @@ func knownKinds() string {
 	return strings.Join(slices.Sorted(maps.Keys(registry)), ", ")
 }
 
+// StrictKeys makes a decode into RawCheck fail on a key the type has no field
+// for. It reaches those fields only: With is a map, which accepts every key it
+// is given, so decodeWith is what validates the payload.
+func StrictKeys(dc *mapstructure.DecoderConfig) {
+	dc.ErrorUnused = true
+}
+
 func decodeWith(with map[string]any, out any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{Result: out, ErrorUnused: true})
 

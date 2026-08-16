@@ -28,6 +28,25 @@ a poor label -- while for `binary` they usually match, so `target` defaults to
 `with:` is decoded by mapstructure with `ErrorUnused: true`, so a misspelled
 key is a hard error naming the key rather than a silently ignored setting.
 
+### Strict keys, and where they stop
+
+The check is decoded in `cmd`, its payload in `probe`, so the rule is applied
+twice: `StrictKeys` on viper's `UnmarshalKey` and `decodeWith` in each
+constructor. Only the second sees inside `with:`, which is a map and takes any
+key. `StrictKeys` is exported so the example test decodes the way the command
+does, or `config init` could write a file `doctor` refuses.
+
+The list decodes before any check is built, so a bad key beside `with:` masks
+every later error in the file. That error is mapstructure's own -- `'[0]' has
+invalid keys: hint`, an index where a `CheckError` would render
+`checks[0] "alpha"`. The key names exist only in that message text, so there is
+nothing typed to re-render from; a decode per entry is what would make the
+index ours to print.
+
+The root is not covered at all. A misspelled `checks:` parses as a file with no
+checks in it, so the run reports nothing configured rather than a typo -- exit
+0 interactively, and only the zero-checks rule makes `--ci` fail.
+
 ## The check registry is closed
 
 Kinds come from a `map[string]checkFactory` in `internal/probe/config.go`. The

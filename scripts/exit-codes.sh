@@ -144,6 +144,11 @@ assert_contains "unknown check type" "$stderr" "nosuchtype"
 assert_contains "unknown check type" "$stderr" "one of: "
 # A file was read, so the run names it even though the build failed.
 assert_contains "unknown check type" "$stderr" "using $work/envprobe.yaml"
+# A key beside with:, which fails in the decode rather than in LoadChecks. Same
+# exit code, a third way to reach it.
+printf 'checks:\n  - name: x\n    type: binary\n    hint: install x\n' >envprobe.yaml
+expect 2 "unknown check key" -- doctor
+assert_contains "unknown check key" "$stderr" "hint"
 printf 'checks: [\n' >envprobe.yaml
 expect 2 "malformed yaml" -- doctor
 # Named by the error rather than the source line: the read failed, so

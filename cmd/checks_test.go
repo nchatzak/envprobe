@@ -33,6 +33,17 @@ checks:
       target: envprobe-also-missing
 `
 
+// Two checks that are fine apart from a key envprobe does not know, one each.
+const twoUnknownKeysConfig = `
+checks:
+  - name: alpha
+    type: binary
+    hint: install alpha
+  - name: beta
+    type: binary
+    tip: install beta
+`
+
 // isolate points both config search roots at empty temp dirs, so the result
 // cannot depend on the machine running the test. Two separate dirs on purpose:
 // sharing one would put a file written to the working directory on the home
@@ -140,6 +151,44 @@ func TestConfiguredChecksMalformedYAML(t *testing.T) {
 	// error instead, which reads correctly because a parse error is one line.
 	if want := wantConfigPath(t); !strings.Contains(err.Error(), want) {
 		t.Errorf("error = %q, want it to name %q", err, want)
+	}
+}
+
+// Unknown keys on the checks themselves, which viper ignored until StrictKeys.
+// Two of them, on different entries: this decode covers the whole list at once,
+// so one run has to name both. The assertion is the keys, since the prose
+// around them is mapstructure's and carries no sentinel to match on.
+func TestConfiguredChecksUnknownKeys(t *testing.T) {
+	isolate(t)
+	writeFile(t, testConfigFileName, twoUnknownKeysConfig)
+
+	checks, _, err := configuredChecks()
+	if err == nil {
+		t.Fatalf("configuredChecks() = %#v, want an error", checks)
+	}
+	for _, key := range []string{"hint", "tip"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Errorf("error = %q, want it to name %q", err, key)
+		}
+	}
+}
+
+// A misspelled name is the case the strict decode is worth having: it used to
+// reach LoadChecks as an entry with no name at all and report ErrNameRequired,
+// which sends the reader to the wrong line.
+func TestConfiguredChecksMisspelledName(t *testing.T) {
+	isolate(t)
+	writeFile(t, testConfigFileName, "checks:\n  - nmae: alpha\n    type: binary\n")
+
+	checks, _, err := configuredChecks()
+	if err == nil {
+		t.Fatalf("configuredChecks() = %#v, want an error", checks)
+	}
+	if !strings.Contains(err.Error(), "nmae") {
+		t.Errorf("error = %q, want it to name the unknown key", err)
+	}
+	if errors.Is(err, probe.ErrNameRequired) {
+		t.Errorf("error = %q, want the typo reported rather than a missing name", err)
 	}
 }
 
