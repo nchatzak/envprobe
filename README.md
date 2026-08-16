@@ -6,9 +6,9 @@ Check that a machine has the tools and services you expect — a laptop, a CI
 runner, or a test box.
 
 envprobe reads a config file that names what should be there, then verifies it:
-executables on `PATH` (with their versions), TCP ports that answer, and the
-Docker daemon. There are no built-in defaults. What you write in the config is
-exactly what gets checked.
+executables on `PATH` (with their versions), TCP ports that answer, the Docker
+daemon, environment variables, and files and directories. There are no built-in
+defaults. What you write in the config is exactly what gets checked.
 
 ```console
 $ envprobe doctor
@@ -20,7 +20,9 @@ using /Users/you/envprobe.yaml
 ✓  postgres                2ms
 ✗  redis                   1ms  (connection refused)
 ✓  docker-daemon           160ms
-5 of 7 checks passed
+✓  AWS_PROFILE             0s
+✗  ssh config              0s  (not a file)
+6 of 9 checks passed
 ```
 
 ## Install
