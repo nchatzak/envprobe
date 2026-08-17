@@ -16,7 +16,7 @@ type RawCheck struct {
 	With map[string]any
 }
 
-// checkFactory builds one Check from its config entry. Every kind in the
+// checkFactory builds one Check from its config entry. Every type in the
 // registry is one of these.
 type checkFactory func(name string, with map[string]any) (Check, error)
 
@@ -28,8 +28,8 @@ var registry = map[string]checkFactory{
 	"path":          newPathCheck,
 }
 
-// knownKinds lists the registered kinds, sorted, for an error message to offer.
-func knownKinds() string {
+// KnownTypes lists the registered types, sorted and comma-separated.
+func KnownTypes() string {
 	return strings.Join(slices.Sorted(maps.Keys(registry)), ", ")
 }
 
@@ -77,7 +77,7 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 			errs = append(errs, &CheckError{
 				Index: i,
 				Name:  raw.Name,
-				Err:   fmt.Errorf("%w (one of: %s)", ErrCheckTypeRequired, knownKinds()),
+				Err:   fmt.Errorf("%w (one of: %s)", ErrCheckTypeRequired, KnownTypes()),
 			})
 			continue
 		}
@@ -87,7 +87,7 @@ func LoadChecks(raws []RawCheck) ([]Check, error) {
 			errs = append(errs, &CheckError{
 				Index: i,
 				Name:  raw.Name,
-				Err:   fmt.Errorf("%w %q (one of: %s)", ErrUnknownCheckType, raw.Type, knownKinds()),
+				Err:   fmt.Errorf("%w %q (one of: %s)", ErrUnknownCheckType, raw.Type, KnownTypes()),
 			})
 			continue
 		}

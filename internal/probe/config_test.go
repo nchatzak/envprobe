@@ -117,7 +117,7 @@ func TestLoadChecksErrors(t *testing.T) {
 		},
 		{
 			// docker-daemon takes no payload at all, so *any* key is invalid.
-			name:            "unknown with param on payload-less kind",
+			name:            "unknown with param on payload-less type",
 			raws:            []RawCheck{{Name: "docker", Type: "docker-daemon", With: map[string]any{"targt": "x"}}},
 			wantErrContains: []string{"has invalid keys", "targt"},
 		},

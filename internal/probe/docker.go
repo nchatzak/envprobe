@@ -34,7 +34,7 @@ func (c dockerDaemonCheck) Run(ctx context.Context) Result {
 
 // dockerDaemonConfig takes no fields: the check is fully described by its name.
 // Decoding into it anyway makes ErrorUnused reject a misspelled key, so this
-// kind fails as loudly as the others.
+// type fails as loudly as the others.
 type dockerDaemonConfig struct{}
 
 func newDockerDaemonCheck(name string, with map[string]any) (Check, error) {

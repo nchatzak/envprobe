@@ -1,8 +1,7 @@
 # CLAUDE.md
 
 envprobe is a Go CLI that checks a machine has the tools and services a config
-file names: binaries on PATH (with versions), TCP ports that answer, and the
-Docker daemon.
+file names.
 
 ## Commands
 
@@ -25,10 +24,11 @@ thing covering `main`, `os.Exit`, `Execute` and the real config search path.
 - `internal/probe/` -- checks, results, rendering. Knows nothing about viper or
   the config search path; it takes `[]RawCheck` and gives back `[]Check`.
 
-A check kind is a `checkFactory` registered in `registry` in
-`internal/probe/config.go`. Adding one means: a `Run(ctx) Result` type, a
-config struct decoded via `decodeWith` (`ErrorUnused` is on, so a typo'd key is
-an error), a registry entry, and an `example.yaml` stanza.
+A check type is a `checkFactory` registered in `registry` in
+`internal/probe/config.go`. Adding one means: a Go type with a
+`Run(ctx) Result` method, a config struct decoded via `decodeWith`
+(`ErrorUnused` is on, so a typo'd key is an error), a registry entry, and an
+`example.yaml` stanza.
 
 ## Exit codes
 
@@ -41,6 +41,12 @@ says only that the run failed. Do not put a tally back into an error message.
 
 ## Conventions
 
+- One word per concept. A *check type* (short form *type*) is a registry entry
+  -- `binary`, `port` -- as in `KnownTypes` and `ErrUnknownCheckType`. A *path
+  kind* (short form *kind*) is only `with.kind` on a `path` check, `file` or
+  `dir`, as in `ErrUnknownPathKind`. Both are user-facing config words and sit
+  three lines apart in a `path` stanza, so never use one for the other. Say
+  *Go type* for the language sense where it could be read as a check type.
 - Design rationale lives in `docs/decisions.md`. Read the relevant section
   before changing existing behaviour, and record new decisions there rather
   than in code comments.

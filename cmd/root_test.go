@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/nchatzak/envprobe/internal/probe"
 )
 
 func TestRootRegistersSubcommands(t *testing.T) {
@@ -21,6 +23,13 @@ func TestRootRegistersSubcommands(t *testing.T) {
 		if !slices.Contains(got, want) {
 			t.Errorf("newRootCmd() has no %q subcommand, got %v", want, got)
 		}
+	}
+}
+
+func TestRootHelpListsRegisteredTypes(t *testing.T) {
+	t.Parallel()
+	if got := newRootCmd().Long; !strings.Contains(got, probe.KnownTypes()) {
+		t.Errorf("root help = %q, want it to contain the registered types %q", got, probe.KnownTypes())
 	}
 }
 

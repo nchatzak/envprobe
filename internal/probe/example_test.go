@@ -31,9 +31,15 @@ func TestExampleConfig(t *testing.T) {
 		seen[raw.Type] = true
 	}
 
-	for kind := range registry {
-		if !seen[kind] {
-			t.Errorf("example.yaml has no %q entry", kind)
+	for checkType := range registry {
+		if !seen[checkType] {
+			t.Errorf("example.yaml has no %q entry", checkType)
 		}
+	}
+}
+
+func TestExampleConfigListsRegisteredTypes(t *testing.T) {
+	if !strings.Contains(ExampleConfig, KnownTypes()) {
+		t.Errorf("example.yaml header does not list the registered types %q", KnownTypes())
 	}
 }

@@ -16,7 +16,7 @@ One shape for every check, no alternatives accepted:
 checks:
   - name: postgres      # display label, must be unique
     type: port          # key into the check registry
-    with:               # payload, decoded per kind
+    with:               # payload, decoded per type
       target: localhost:5432
 ```
 
@@ -49,15 +49,21 @@ checks in it, so the run reports nothing configured rather than a typo -- exit
 
 ## The check registry is closed
 
-Kinds come from a `map[string]checkFactory` in `internal/probe/config.go`. The
-project ships the kinds; config only instantiates them. An unknown `type` is a
+Types come from a `map[string]checkFactory` in `internal/probe/config.go`. The
+project ships the types; config only instantiates them. An unknown `type` is a
 map miss, not a plugin lookup.
 
-Adding a kind means four things: a type with a `Run(ctx) Result` method, a
+Adding a type means four things: a Go type with a `Run(ctx) Result` method, a
 config struct decoded via `decodeWith`, a registry entry, and a stanza in
 `example.yaml`. `example_test.go` feeds the embedded template through the same
-path the real command uses and asserts every registry kind appears, so adding a
-kind without documenting it fails the build.
+path the real command uses and asserts every registry type appears, so adding a
+type without documenting it fails the build.
+
+`KnownTypes` renders the sorted registry, so the root help text and the
+missing- and unknown-type errors offer one list that cannot drift from the map;
+`root_test.go` asserts the help text still contains it. The README enumerates
+the types deliberately -- it says what each one checks, which a generated list
+cannot.
 
 ## LoadChecks builds, never runs
 
@@ -285,7 +291,7 @@ without a seam that production does not use. `newRootCmd` is the only caller.
 Left as-is deliberately: it is a flat struct at the output boundary, the
 `jsonResult` DTO it converts to marks those fields `omitempty` so they do not
 surface, and a uniform `Render` is worth more today than precise types. Revisit
-when a kind needs a field the others cannot fake.
+when a type needs a field the others cannot fake.
 
 `Problem` is not that trigger firing: every check means it the same way, and a
 flat struct is the right home for a field like that.

@@ -5,6 +5,8 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/nchatzak/envprobe/internal/probe"
+
 	"github.com/spf13/cobra"
 )
 
@@ -31,9 +33,8 @@ func newRootCmd() *cobra.Command {
 		Long: `envprobe checks that a machine is set up the way you expect —
 a laptop, a CI runner, or a test or UAT box.
 
-It verifies that binaries are on PATH and reports their versions, that
-something is listening on the ports you name, and that the Docker daemon
-answers. Run "envprobe doctor" to check them all at once.`,
+Every check in your config names a type, one of: ` + probe.KnownTypes() + `.
+Run "envprobe doctor" to check them all at once.`,
 		Version: resolveVersion(version, info),
 	}
 	cmd.AddCommand(newDoctorCmd(configuredChecks), newConfigCmd())

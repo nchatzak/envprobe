@@ -15,13 +15,13 @@ var (
 	// ErrDuplicateName means an earlier entry already claimed that name.
 	ErrDuplicateName = errors.New("duplicate check name")
 	// ErrCheckTypeRequired means the entry has no type. It is wrapped with the
-	// registered kinds.
+	// registered types.
 	ErrCheckTypeRequired = errors.New("check type is required")
 	// ErrUnknownCheckType means the type is not in the registry. It is wrapped
-	// with the offending type name and the registered kinds, neither of which
+	// with the offending type name and the registered types, neither of which
 	// the sentinel alone can carry.
 	ErrUnknownCheckType = errors.New("unknown check type")
-	// ErrTargetRequired means a kind that needs an explicit target did not get
+	// ErrTargetRequired means a type that needs an explicit target did not get
 	// one.
 	ErrTargetRequired = errors.New("target is required")
 	// ErrUnknownPathKind means that the provided kind is not supported.
