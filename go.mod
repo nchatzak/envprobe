@@ -3,6 +3,7 @@ module github.com/nchatzak/envprobe
 go 1.26.5
 
 require (
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.10.2

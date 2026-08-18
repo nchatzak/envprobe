@@ -115,7 +115,9 @@ failed.
 
 `problem` carries the same cause the table prints in parentheses, under the
 same rule. It is not limited to failures: wrong `version_args` give
-`found: true` with `problem: version command failed`.
+`found: true` with `problem: version command failed`, unless
+`version_constraint` is set — then there is nothing to compare and the check
+fails.
 
 The `5 of 7 checks passed` line is a diagnostic, so it goes to stderr in both
 formats — stdout stays exactly the results array. It prints on every run that
@@ -142,11 +144,29 @@ The five types:
 
 | Type | Checks | `with:` |
 | --- | --- | --- |
-| `binary` | The executable is on `PATH`, and its version if you ask for one | `target` (defaults to `name`), `version_args` (optional) |
+| `binary` | The executable is on `PATH`, and its version if you ask for one | `target` (defaults to `name`), `version_args` (optional), `version_constraint` (optional) |
 | `port` | Something is listening, which proves a service is running rather than merely installed | `target`, required, as `"host:port"` |
 | `docker-daemon` | `docker info` answers, which the binary check alone cannot tell you | none |
 | `env` | An environment variable is set, and matches a pattern if you ask for one | `target` (defaults to `name`), `matches` (optional regexp) |
 | `path` | A file or directory exists, for the things a tool reads rather than the tool itself | `target`, required, `kind` (optional, `file` or `dir`) |
+
+A `binary` check with `version_constraint: ">= 1.24"` fails when the tool is
+older than that, rather than reporting a version and leaving the judgement to
+you. It needs `version_args`, since there is otherwise nothing to compare, and
+omitting them is a config error. The key is spelled apart from the `version`
+field in `--json`, which is what the machine reported rather than what you
+asked for.
+
+A two-component version counts as its `.0` release, so `1.24` satisfies
+`>= 1.24`. A version with more than three components — `1.2.3.4`, or output
+holding no version at all — cannot be compared, and fails the check with
+`problem: cannot compare version` rather than passing unverified. Such a tool
+can still be checked for presence, just not constrained.
+
+A prerelease suffix is dropped before the comparison, so `1.2.3-rc1` compares as
+`1.2.3` and satisfies `>= 1.2.3` — the version such a constraint is most likely
+written to exclude. The row prints `1.2.3` as well, so nothing on screen says
+the judgement was made on a truncated string.
 
 An `env` check with no `matches` asks only whether the variable is set, so an
 empty value passes. Write `matches: "."` to require a non-empty one.

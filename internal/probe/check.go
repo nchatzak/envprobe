@@ -39,6 +39,8 @@ const (
 	problemNotAFile             = "not a file"
 	problemNotADirectory        = "not a directory"
 	problemCannotRead           = "cannot read path"
+	problemVersionDoesNotMatch  = "version does not match"
+	problemCannotCompareVersion = "cannot compare version"
 )
 
 // CountFailed reports how many checks did not pass.

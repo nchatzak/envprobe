@@ -359,6 +359,49 @@ bare, as with `binary`, since `Found: false` already says it; every other stat
 failure is named, so a symlink loop or a path under a file cannot pass for a
 missing one.
 
+## `version_constraint:` changes what `binary` means by `Found`
+
+Without it, `Found` means the executable is on `PATH` and the version is a
+report. With it, `Found` means on `PATH` *and* acceptable, so the two outcomes
+that used to pass have to fail: a version command that errors, and a version
+`semver` cannot compare. Left passing, a constraint would be worse than writing
+none, since it would report success on exactly the misconfiguration it was
+added to catch.
+
+The key is not `version:`. That word is already the `--json` field holding what
+the machine reported, and a config key meaning the opposite three lines away is
+the `type`/`kind` hazard again. `env` sets the precedent: the constraint is
+`matches`, and the observed value is never called that.
+
+The constraint is yours and the version string is the machine's, which is where
+the two land. `semver.NewConstraint` runs in `newBinaryCheck`, so a malformed
+constraint is a config error `config validate` catches, as is
+`version_constraint:` without `version_args:`. A version that will not compare
+is a `Problem`, because what a tool prints is a fact about that box.
+
+`parseVersionOutput` and `semver` are an extractor and a comparator, not two
+parsers to unify. The regex finds the version-shaped run in whatever the tool
+printed -- nothing in the ecosystem does that job, and `go-version`'s exported
+grammar is lazy, so as a search it reads `go1.26.5` as `1`. `semver` then
+decides whether that run can be compared. `cannot compare version` names which
+of the two failed, so a row showing `1.2.3.4` and refusing to judge it is not a
+contradiction.
+
+`semver.NewVersion` is deliberate over `StrictNewVersion`: it reads `1.24` as
+`1.24.0`, and a two-component version is what `parseVersionOutput` returns from
+plenty of tools. A leading `v` never reaches it -- the capture group is digits
+and dots, so the prefix is stripped before semver sees the string. Four-part
+versions are the cost: `1.2.3.4` is not semver and fails. `hashicorp/go-version`
+would take it, but that is the only case it buys, since the regex strips
+prerelease and build suffixes before either library sees them.
+
+That stripping has its own cost, unfixed here: `1.2.3-rc1` reaches semver as
+`1.2.3` and satisfies `>= 1.2.3`, the version such a constraint is most likely
+written to exclude. Neither library is at fault -- both order a prerelease below
+its release, and neither is ever handed the suffix. Letting suffixes through is
+a regex change that would turn Java's `1.8.0_292` and git's `2.39.3.g1234abc`
+into `cannot compare version`, so it is deferred rather than decided.
+
 ## `dockerDaemonCheck` has no tests
 
 It shells out to `docker info` with no seam for faking `exec`. The sketch is a

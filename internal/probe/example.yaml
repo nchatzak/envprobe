@@ -18,6 +18,12 @@ checks:
   #                 omitted when they are the same.
   #   version_args  optional. Arguments that make the tool print its version.
   #                 Omit them and envprobe only reports found/missing.
+  #   version_constraint
+  #                 optional. A constraint the reported version must satisfy,
+  #                 such as ">= 1.24", "^1.24" or ">= 1.24, < 2". Requires
+  #                 version_args; without it there is nothing to compare. A
+  #                 version with more than three parts, such as 1.2.3.4,
+  #                 cannot be compared and fails the check.
   - name: git
     type: binary
     with:
@@ -30,11 +36,13 @@ checks:
       target: java
       version_args: ["-version"] # note: one dash, and java prints to stderr
 
+  # With a constraint, this fails on an older Go instead of reporting one.
   - name: Go
     type: binary
     with:
       target: go
       version_args: ["version"] # note: no dashes at all
+      version_constraint: ">= 1.24"
 
   # No version_args — this only reports whether `terraform` is installed.
   - name: terraform

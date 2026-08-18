@@ -25,6 +25,8 @@ func TestCheckTool(t *testing.T) {
 }
 
 func TestBinaryCheckRun(t *testing.T) {
+	atLeast120 := mustConstraint(t, ">= 1.20.0")
+	below120 := mustConstraint(t, "< 1.20.0")
 	tests := []struct {
 		name          string      // the subtest label, not the check's name
 		check         binaryCheck // the input
@@ -56,6 +58,44 @@ func TestBinaryCheckRun(t *testing.T) {
 			wantFound:     true,
 			wantVersionRe: `^$`,
 			wantProblem:   problemVersionCommandFailed,
+		},
+		{
+			name:          "version constraint succeeds",
+			check:         binaryCheck{name: "go", target: "go", versionArgs: []string{"version"}, versionConstraint: atLeast120},
+			wantName:      "go",
+			wantFound:     true,
+			wantVersionRe: `^\d+\.\d+\.\d+$`,
+		},
+		{
+			name:          "version constraint fails",
+			check:         binaryCheck{name: "go", target: "go", versionArgs: []string{"version"}, versionConstraint: below120},
+			wantName:      "go",
+			wantFound:     false,
+			wantVersionRe: `^\d+\.\d+\.\d+$`,
+			wantProblem:   problemVersionDoesNotMatch,
+		},
+		{
+			name:          "version cannot be compared",
+			check:         binaryCheck{name: "go", target: "go", versionArgs: []string{"env", "GOOS"}, versionConstraint: atLeast120},
+			wantName:      "go",
+			wantFound:     false,
+			wantVersionRe: `^[a-z]+$`,
+			wantProblem:   problemCannotCompareVersion,
+		},
+		{
+			name:          "broken command with constraint",
+			check:         binaryCheck{name: "go", target: "go", versionArgs: []string{"bogus-subcommand"}, versionConstraint: atLeast120},
+			wantName:      "go",
+			wantFound:     false,
+			wantVersionRe: `^$`,
+			wantProblem:   problemVersionCommandFailed,
+		},
+		{
+			name:          "no constraint, unreadable output",
+			check:         binaryCheck{name: "go", target: "go", versionArgs: []string{"env", "GOOS"}},
+			wantName:      "go",
+			wantFound:     true,
+			wantVersionRe: `^[a-z]+$`,
 		},
 	}
 

@@ -27,6 +27,14 @@ var (
 	// ErrUnknownPathKind means that the provided kind is not supported.
 	// Used in path check, where kind can be file or dir.
 	ErrUnknownPathKind = errors.New("unknown path kind")
+	// ErrVersionArgsRequired means a binary check set a version constraint
+	// without the arguments that make the tool print its version. It is
+	// wrapped with the key that made them required.
+	ErrVersionArgsRequired = errors.New("version_args is required")
+	// ErrInvalidVersionConstraint means the version constraint does not
+	// parse. It is wrapped with the offending constraint, which the sentinel
+	// alone cannot carry.
+	ErrInvalidVersionConstraint = errors.New("invalid version constraint")
 )
 
 // CheckError says where in the config the problem is; the wrapped Err says
