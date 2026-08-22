@@ -19,10 +19,10 @@ type binaryCheck struct {
 var _ Check = binaryCheck{}
 
 func (c binaryCheck) Run(ctx context.Context) Result {
-	result := checkTool(c.target)
-	result.Name = c.name
+	path, err := exec.LookPath(c.target)
+	result := Result{Name: c.name, Found: err == nil, Path: path}
 
-	if !result.Found || len(c.versionArgs) == 0 {
+	if err != nil || len(c.versionArgs) == 0 {
 		return result
 	}
 
@@ -53,15 +53,6 @@ func (c binaryCheck) Run(ctx context.Context) Result {
 	}
 
 	return result
-}
-
-func checkTool(tool string) Result {
-	path, err := exec.LookPath(tool)
-	return Result{
-		Name:  tool,
-		Found: err == nil,
-		Path:  path,
-	}
 }
 
 type binaryConfig struct {

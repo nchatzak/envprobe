@@ -30,11 +30,12 @@ key is a hard error naming the key rather than a silently ignored setting.
 
 ### Strict keys, and where they stop
 
-The check is decoded in `cmd`, its payload in `probe`, so the rule is applied
-twice: `StrictKeys` on viper's `UnmarshalKey` and `decodeWith` in each
-constructor. Only the second sees inside `with:`, which is a map and takes any
-key. `StrictKeys` is exported so the example test decodes the way the command
-does, or `config init` could write a file `doctor` refuses.
+The check is decoded in `cmd`, its payload in `probe`, so the one rule is
+applied at two layers: `StrictKeys` on viper's `UnmarshalKey`, and `decodeWith`
+-- which applies `StrictKeys` too -- in each constructor. Only the second sees
+inside `with:`, which is a map and takes any key. `StrictKeys` is exported so
+the example test decodes the way the command does, or `config init` could write
+a file `doctor` refuses.
 
 The list decodes before any check is built, so a bad key beside `with:` masks
 every later error in the file. That error is mapstructure's own -- `'[0]' has

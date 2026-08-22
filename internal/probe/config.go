@@ -33,16 +33,18 @@ func KnownTypes() string {
 	return strings.Join(slices.Sorted(maps.Keys(registry)), ", ")
 }
 
-// StrictKeys makes a decode into RawCheck fail on a key the type has no field
-// for. It reaches those fields only: With is a map, which accepts every key it
-// is given, so decodeWith is what validates the payload.
+// StrictKeys makes a decode fail on a key the target has no field for. Applied
+// at both layers: viper's UnmarshalKey for the check itself, decodeWith for the
+// with: payload, which is a map and accepts every key it is given.
 func StrictKeys(dc *mapstructure.DecoderConfig) {
 	dc.ErrorUnused = true
 }
 
 func decodeWith(with map[string]any, out any) error {
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{Result: out, ErrorUnused: true})
+	dc := &mapstructure.DecoderConfig{Result: out}
+	StrictKeys(dc)
 
+	decoder, err := mapstructure.NewDecoder(dc)
 	if err != nil {
 		return fmt.Errorf("cannot create decoder: %w", err)
 	}
