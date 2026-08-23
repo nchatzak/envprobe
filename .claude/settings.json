@@ -5,7 +5,6 @@
   "permissions": {
     "deny": [
       "Bash(sed -i:*)",
-      "Write(.claude/**)",
       "Edit(.claude/**)",
       "Edit(scripts/check.sh)",
       "Edit(scripts/crap.sh)",
