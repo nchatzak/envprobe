@@ -96,7 +96,9 @@ to cobra as values.
 For the same reason there are no package-level `var xCmd` and no `init()`.
 `newRootCmd` / `newDoctorCmd` / `newConfigCmd` assemble the tree per
 invocation, so tests get a fresh command with fresh flag values, and `doctor`
-can be built with an injected loader.
+can be built with an injected loader. Flag values live in an options struct
+local to each constructor, bound with `BoolVar`/`StringVar`, so a fresh command
+means fresh values structurally rather than by convention.
 
 ## Three config subcommands, one job each
 

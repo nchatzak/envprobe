@@ -12,20 +12,30 @@ import (
 	"github.com/spf13/viper"
 )
 
+// configInitOptions holds the parsed values of config init's flags.
+type configInitOptions struct {
+	out   string
+	force bool
+}
+
 func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Inspect and generate envprobe configuration",
 	}
 
+	var opts configInitOptions
+
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Write an example config to a file",
 		Args:  cobra.NoArgs,
-		RunE:  runConfigInit,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runConfigInit(cmd, opts)
+		},
 	}
-	initCmd.Flags().StringP("out", "o", "envprobe.yaml", "output path")
-	initCmd.Flags().Bool("force", false, "overwrite an existing file")
+	initCmd.Flags().StringVarP(&opts.out, "out", "o", "envprobe.yaml", "output path")
+	initCmd.Flags().BoolVar(&opts.force, "force", false, "overwrite an existing file")
 
 	validateCmd := &cobra.Command{
 		Use:   "validate [file]",
@@ -49,13 +59,12 @@ func newConfigCmd() *cobra.Command {
 	return cmd
 }
 
-func runConfigInit(cmd *cobra.Command, args []string) error {
+func runConfigInit(cmd *cobra.Command, opts configInitOptions) error {
 	cmd.SilenceUsage = true
-	output, _ := cmd.Flags().GetString("out")
-	force, _ := cmd.Flags().GetBool("force")
+	output := opts.out
 
 	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL
-	if force {
+	if opts.force {
 		flags = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
 
