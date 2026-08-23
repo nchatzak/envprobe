@@ -116,6 +116,7 @@ Write `.pipeline/review.json`:
   "crap": {
     "regressions": 0,
     "pre_existing_over_threshold": 2,
+    "pre_existing_in_diff": 1,
     "worst": { "function": "Limiter.Allow", "crap": 55.9, "cc": 9, "coverage": 20.0 }
   },
   "findings": [
@@ -131,6 +132,9 @@ Write `.pipeline/review.json`:
   ]
 }
 ```
+
+`pre_existing_in_diff` counts only offenders in files this diff touched (git diff --name-only HEAD).
+The global count stays, as a report line for the human.
 
 ## Verdict rules
 

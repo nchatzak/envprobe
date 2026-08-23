@@ -245,9 +245,10 @@ Escalate immediately, without waiting for the cap, if you see:
 ## Stage 4 — Simplify
 
 Only after review passes. Look at `.pipeline/review.json` for
-`crap.pre_existing_over_threshold`.
+`crap.pre_existing_in_diff`.
 
-- **Zero** → skip to Stage 5 and say you skipped it.
+- **Zero** → skip to Stage 5 and say you skipped it, naming any offenders
+  outside the diff so they reach the human rather than the simplifier.
 - **Non-zero** → delegate to `simplifier`, scoped to the modules in the diff.
 
 After the simplifier returns, delegate to `reviewer` **again**. This second
