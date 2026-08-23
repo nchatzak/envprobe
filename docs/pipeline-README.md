@@ -146,12 +146,12 @@ and missing coverage are review findings, not a separate metric bolted on:
 a correct, idiomatic, CC-18 function at 30% coverage is a liability, and
 catching that is the reviewer's job alongside correctness and Go practice.
 
-### Threshold: 15, with a baseline
+### Threshold: 10, with a baseline
 
 The conventional threshold is 30. That's too loose for Go, where functions
 should be small — and remember that at 100% coverage CRAP equals CC, so a
-threshold of 30 permits a fully-tested CC-29 function. Default here is **15**
-to fail, **10** to warn.
+threshold of 30 permits a fully-tested CC-29 function. Default here is **10**
+to fail, **6** to warn.
 
 A tight threshold on a real codebase would normally be unusable — everything
 lights up on day one. The baseline fixes that:
@@ -169,7 +169,7 @@ The orchestrator snapshots automatically after you approve the plan. Then:
 | **PRE-EXISTING** — already over threshold before the diff | `minor`, reports | simplifier |
 | **N/A** — no coverage mapped | `major` | implementer (untested) |
 
-That split is what makes 15 adoptable. Your legacy CC-20 monster gets
+That split is what makes 10 adoptable. Your legacy CC-20 monster gets
 reported every run and never blocks anything; a new function at CRAP 55 fails
 immediately. It also stops the implementer refactoring code outside its plan
 to pull an average down.
@@ -380,7 +380,7 @@ including deleting tests. The cap turns a runaway into an escalation.
 **Cost.** Set `model: sonnet` on the implementer once it behaves; keep
 `opus` on planner, reviewer, and simplifier where judgment matters.
 
-**Threshold.** `CRAP_THRESHOLD=10 CRAP_WARN=7 ./scripts/crap.sh` to tighten
+**Threshold.** `CRAP_THRESHOLD=8 CRAP_WARN=5 ./scripts/crap.sh` to tighten
 further. The baseline mechanism means a tight threshold is safe to adopt on
 day one — legacy debt is reported, never blocking.
 

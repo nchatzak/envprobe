@@ -35,13 +35,13 @@ missing coverage are review findings, not someone else's metric.
 
 `crap.sh` labels each offender. Map them like this:
 
-| crap.sh label | Severity | Why |
-|---|---|---|
-| REGRESSION, new function | `major` | the implementer wrote it this way; it can be written better |
+| crap.sh label                           | Severity | Why |
+|-----------------------------------------|---|---|
+| REGRESSION, new function                | `major` | the implementer wrote it this way; it can be written better |
 | REGRESSION, existing function got worse | `major` | the diff degraded working code |
-| PRE-EXISTING | `minor` | not this diff's fault; simplifier worklist |
-| warn band (10–15) | `minor` | worth a note, not a block |
-| N/A | `major` | **unmeasured, not clean** — a function with no coverage mapped is untested, and the plan's test plan probably missed it |
+| PRE-EXISTING                            | `minor` | not this diff's fault; simplifier worklist |
+| warn band (6–10)                        | `minor` | worth a note, not a block |
+| N/A                                     | `major` | **unmeasured, not clean** — a function with no coverage mapped is untested, and the plan's test plan probably missed it |
 
 For every CRAP finding, the `fix` field must say **which lever to pull**:
 lower CC, or add tests. Look at the numbers, don't guess. A CC 9 function at

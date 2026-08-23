@@ -15,16 +15,16 @@
 # already bad are PRE-EXISTING: reported for the simplifier, not blocking.
 #
 # Env:
-#   CRAP_THRESHOLD   default 15   fail above this
-#   CRAP_WARN        default 10   report between warn and threshold
+#   CRAP_THRESHOLD   default 10   fail above this
+#   CRAP_WARN        default 6    report between warn and threshold
 #   CRAP_TEST_CMD    passed to --test-command
 #   CRAP_WORKERS     passed to --max-workers
 #   CRAP_FILTER      path fragments to scope the report
 
 set -uo pipefail
 
-THRESHOLD="${CRAP_THRESHOLD:-15}"
-WARN="${CRAP_WARN:-10}"
+THRESHOLD="${CRAP_THRESHOLD:-10}"
+WARN="${CRAP_WARN:-6}"
 PIPE_DIR=".pipeline"
 REPORT="$PIPE_DIR/crap.txt"
 BASELINE="$PIPE_DIR/crap-baseline.txt"

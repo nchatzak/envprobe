@@ -199,15 +199,18 @@ Your existing `cmd/` code is captured in the baseline, so it's pre-existing
 and never blocks. And for new code, run the numbers — at 0% coverage the
 formula collapses to `CC² + CC`:
 
-| CC | CRAP at 0% coverage | vs threshold 15 |
+| CC | CRAP at 0% coverage | vs threshold 10 |
 |---|---|---|
 | 2 | 6 | passes |
-| 3 | 12 | passes |
+| 3 | 12 | fails |
 | 4 | 20 | fails |
 | 6 | 42 | fails |
 
-**Thin dispatch passes at zero coverage.** A `main` that parses flags and
-calls into `internal/` sits at CC 2–3 and never trips the gate.
+**At threshold 10 the margin is thin.** Only CC 1–2 clears the gate at zero
+coverage, so a `cmd/` function with a couple of branches trips it. That is
+tolerable when `cmd/` is covered by `go test` — check your own numbers with
+`go test ./... -cover` before assuming this section applies to you. If `cmd/`
+really is near-0%, either keep dispatch at CC 2 or raise the threshold.
 
 So a `cmd/` function failing CRAP is the gate working correctly, and the fix
 is the one you'd want regardless: move the logic into `internal/` where
