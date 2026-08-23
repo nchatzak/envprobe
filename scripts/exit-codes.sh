@@ -157,6 +157,36 @@ expect 2 "malformed yaml" -- doctor
 assert_contains "malformed yaml" "$stderr" "$work/envprobe.yaml"
 assert_not_contains "malformed yaml" "$stderr" "using "
 
+echo "== config whose top level is not checks =="
+printf 'chekcs:\n  - name: x\n    type: binary\n' >envprobe.yaml
+expect 2 "misspelled checks key" -- doctor
+assert_stdout_empty "misspelled checks key"
+assert_contains "misspelled checks key" "$stderr" "chekcs"
+# A file was read, so the run names it even though it was rejected.
+assert_contains "misspelled checks key" "$stderr" "using $work/envprobe.yaml"
+assert_no_usage "misspelled checks key"
+# The one that matters to a consumer: no parseable [] from a run that never
+# happened.
+expect 2 "misspelled checks key --json" -- doctor --json
+assert_stdout_empty "misspelled checks key --json"
+# The code is 2 with or without --ci, so the absent warning is what proves the
+# reason is the root key and not the empty-list rule.
+expect 2 "misspelled checks key --ci" -- doctor --ci
+assert_not_contains "misspelled checks key --ci" "$stderr" "no checks configured"
+expect 2 "misspelled checks key (validate)" -- config validate
+assert_stdout_empty "misspelled checks key (validate)"
+# A stray key beside a valid checks: list. Same refusal: we may not have read
+# the file the author thought they wrote.
+printf 'checks: []\nverbose: true\n' >envprobe.yaml
+expect 2 "stray top-level key" -- doctor
+assert_contains "stray top-level key" "$stderr" "verbose"
+# No checks key at all reports the machine as fine without looking, so it is a
+# failure too. checks: [] stays the way to check nothing on purpose.
+: >envprobe.yaml
+expect 2 "empty config file" -- doctor
+assert_stdout_empty "empty config file"
+assert_contains "empty config file" "$stderr" "no \"checks\" key"
+
 echo "== misuse =="
 rm -f envprobe.yaml
 expect 2 "unknown flag" -- doctor --nope

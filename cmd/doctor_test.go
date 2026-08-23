@@ -355,3 +355,24 @@ func TestDoctorRenderError(t *testing.T) {
 		})
 	}
 }
+
+// The real loader, not a fake: this is the one assertion a --json consumer
+// depends on, that a run which never happened hands back nothing rather than a
+// parseable empty array. No t.Parallel -- isolate uses t.Chdir and t.Setenv.
+func TestDoctorJSONUnknownTopLevelKey(t *testing.T) {
+	isolate(t)
+	writeFile(t, testConfigFileName, "chekcs:\n  - name: alpha\n    type: binary\n")
+
+	stdout, stderr, err := runDoctor(t, configuredChecks, "--json")
+	if !errors.Is(err, errUnknownTopLevelKey) {
+		t.Fatalf("doctor --json error = %v, want errUnknownTopLevelKey", err)
+	}
+	if stdout != "" {
+		t.Errorf("stdout = %q, want it empty", stdout)
+	}
+
+	// A file was read, so the run names it even though it was rejected.
+	if want := "using " + wantConfigPath(t) + "\n"; !strings.Contains(stderr, want) {
+		t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+	}
+}

@@ -8,6 +8,8 @@
 #
 # Keys on a check and keys inside `with` are both validated: an unknown key is
 # an error naming the key, so a typo fails loudly instead of being ignored.
+# So is the top level: `checks:` is the only key allowed there, and it must be
+# present.
 #
 # Delete what you don't need. An empty `checks:` list runs nothing and exits 0.
 
