@@ -1,7 +1,4 @@
 {
-  "skills": [
-    "https://github.com/unclebob/crap4go/blob/master/SKILL.md"
-  ],
   "permissions": {
     "deny": [
       "Bash(sed -i:*)",

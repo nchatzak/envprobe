@@ -160,14 +160,6 @@ go install github.com/unclebob/crap4go/cmd/crap4go@latest
 `crap.sh` installs it automatically on first run if missing, but doing it now
 surfaces PATH problems while you're paying attention.
 
-Add the skill too, so the reviewer and simplifier get the methodology in
-context and not just a table of numbers. It's already in the bundled
-`settings.json`:
-
-```json
-{ "skills": ["https://github.com/unclebob/crap4go/blob/master/SKILL.md"] }
-```
-
 Then see your numbers:
 
 ```bash
@@ -461,15 +453,18 @@ the hard enforcement, but the implementer is still instructed to run
 `./scripts/guard.sh` before finishing, and the reviewer runs it independently
 and fails the review. You're back to one enforced gate instead of two.
 
-**2. The crap4go skill URL — verified.**
+**2. The crap4go skill entry — removed, it never loaded.**
 
-`settings.json` points at
-`https://github.com/unclebob/crap4go/blob/master/SKILL.md`. That file exists
-and `master` is the repo's default branch, so the `skills` entry resolves.
+`settings.json` used to carry
+`{ "skills": ["https://github.com/unclebob/crap4go/blob/master/SKILL.md"] }`.
+The URL resolves, which is what was originally checked, but that is not the
+same as the entry working. `skills` is not a documented settings key, no
+crap4go skill shows up in a session's available skills, and nothing lands in
+`~/.claude/skills` or `.claude/skills`. The entry was inert.
 
-If it ever 404s, drop the `skills` array. Nothing breaks — `crap.sh` shells
-out to the `crap4go` binary regardless, and the skill only adds methodology
-context for the reviewer and simplifier.
+Nothing was lost by dropping it. `crap.sh` shells out to the `crap4go` binary,
+which is the only path the pipeline uses, and no subagent could have invoked a
+skill in any case — none of the four grants a `Skill` tool.
 
 ---
 

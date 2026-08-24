@@ -189,9 +189,7 @@ CRAP(f) = CC(f)² × (1 − cov(f))³ + CC(f)
 
 The metric is Alberto Savoia's, from crap4j (Agitar, 2007).
 
-**crap4go is both a CLI and a Claude Code skill.**
-
-As a CLI:
+**crap4go is a CLI.**
 
 ```bash
 go install github.com/unclebob/crap4go/cmd/crap4go@latest
@@ -199,14 +197,9 @@ crap4go                              # whole module
 crap4go internal/combat movement     # filter by path fragments
 ```
 
-As a skill — add to `.claude/settings.json` (note: branch is `master`):
-
-```json
-{ "skills": ["https://github.com/unclebob/crap4go/blob/master/SKILL.md"] }
-```
-
-Then ask for a "CRAP report." Install both: the skill gives the simplifier
-the methodology in context, the CLI gives `guard.sh` something to gate on.
+It is what the pipeline uses: `crap.sh` shells out to it, and that is the
+only path. Subagents cannot invoke a skill anyway -- `simplifier.md` grants no
+`Skill` tool.
 
 ### The gotcha: no --threshold flag
 

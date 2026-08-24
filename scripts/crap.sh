@@ -10,6 +10,8 @@
 #   ./scripts/crap.sh baseline   snapshot current scores, always exit 0
 #   ./scripts/crap.sh            score and gate against that snapshot
 #
+# The gate prints a summary. The full crap4go table goes to .pipeline/crap.txt.
+#
 # The baseline is what makes a tight threshold usable on a real codebase.
 # Functions the diff made worse are REGRESSIONS and fail. Functions that were
 # already bad are PRE-EXISTING: reported for the simplifier, not blocking.
@@ -75,12 +77,10 @@ if [ "$MODE" = "baseline" ]; then
   exit 0
 fi
 
-cat "$REPORT"
-
 # Report rows: Function Package CC Cov% CRAP  (neither name contains spaces)
 [ -f "$BASELINE" ] || : > "$BASELINE"
 
-awk -v t="$THRESHOLD" -v w="$WARN" '
+awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" '
   function isnum(x) { return x ~ /^[0-9]+(\.[0-9]+)?$/ }
 
   NR == FNR {                                   # baseline
@@ -88,7 +88,11 @@ awk -v t="$THRESHOLD" -v w="$WARN" '
     next
   }
   {
-    if ($NF == "N/A" || $NF == "n/a") { na++; next }
+    if ($NF == "N/A" || $NF == "n/a") {
+      na++
+      nas = nas sprintf("    %-28s %s\n", $1, $2)
+      next
+    }
     if (!isnum($NF)) next
     k = $2 "." $1
     c = $NF + 0
@@ -107,15 +111,25 @@ awk -v t="$THRESHOLD" -v w="$WARN" '
       }
     } else if (c > w) {
       warn++
+      warns = warns sprintf("    %-28s %-18s %6.1f\n", $1, $2, c)
     }
   }
   END {
-    if (n == 0 && na == 0) { print "\n  SKIP: no scored functions"; exit 0 }
+    if (n == 0 && na == 0) {
+      printf "\n  SKIP: no scored functions (full output: %s)\n", report
+      exit 0
+    }
     printf "\n  scored: %d   average CRAP: %.1f   warn: >%s   fail: >%s\n",
            n, (n ? total/n : 0), w, t
-    if (na > 0)   printf "  %d N/A - unmeasured, not clean\n", na
-    if (warn > 0) printf "  %d in warn band (%s-%s)\n", warn, w, t
-
+    printf "  full table: %s\n", report
+    if (na > 0) {
+      printf "\n  %d N/A - unmeasured, not clean:\n", na
+      printf "%s", nas
+    }
+    if (warn > 0) {
+      printf "\n  %d in warn band (%s-%s):\n", warn, w, t
+      printf "%s", warns
+    }
     if (pre > 0) {
       printf "\n  PRE-EXISTING over threshold (not blocking; simplifier worklist):\n"
       printf "%s", pres

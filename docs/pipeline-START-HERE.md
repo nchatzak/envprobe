@@ -111,7 +111,4 @@ would then be unable to report a `fail` verdict. Symptom: the reviewer never
 returns a verdict on a broken diff. Fix: delete the `SubagentStop` block; you
 drop to one enforced gate instead of two.
 
-The crap4go skill URL in `settings.json` has been verified — `SKILL.md`
-exists on `master` — so there is nothing to check there.
-
 Details in `docs/pipeline-INTEGRATION.md`.

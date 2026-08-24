@@ -18,8 +18,10 @@ inconvenient branch. By the time you run, the tests are the contract.
 
 This is the crap4clj/crap4go workflow, in order. **Do not reorder it.**
 
-1. **Get a CRAP report.** If the crap4go skill is installed, ask for a CRAP
-   report. Otherwise run `./scripts/crap.sh`.
+1. **Get a CRAP report.** Run `./scripts/crap.sh`, and nothing else. Only
+   that script compares against the baseline taken before implementation,
+   and the PRE-EXISTING / REGRESSION split is what tells you which offenders
+   are yours to work on.
 2. **Filter to your work.** Score only the modules in the current diff
    (`git diff --name-only HEAD`). Do not wander into untouched code.
 3. **Pick the single highest-scoring function** in those modules.
@@ -59,12 +61,11 @@ threshold at all.
 
 ## Scoping and stale coverage
 
-crap4go takes path fragments as positional args. Use them — score only the
-modules in your diff, not the whole repo:
+`crap.sh` passes path fragments through to crap4go as positional args. Use
+them — score only the modules in your diff, not the whole repo:
 
 ```bash
-crap4go internal/app internal/sim
-./scripts/crap.sh internal/app internal/sim
+./scripts/crap.sh cmd internal/probe
 ```
 
 crap4go deletes stale coverage and re-runs the suite itself every time, so
