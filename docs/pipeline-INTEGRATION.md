@@ -1,5 +1,9 @@
 # Integrating into an existing Go project
 
+> **This describes installing the pipeline into another Go repo.** In envprobe
+> it is already installed: `.claude/` and `scripts/` are tracked, and the
+> `CHECKS` array in `scripts/guard.sh` is already set. Skip the install steps.
+
 Assumes: a Go module in git, a working check script, and Claude Code
 installed.
 

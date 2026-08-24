@@ -1,5 +1,9 @@
 # Agent delivery pipeline (Go)
 
+> **This describes installing the pipeline into another Go repo.** In envprobe
+> it is already installed: `.claude/` and `scripts/` are tracked, and the
+> `CHECKS` array in `scripts/guard.sh` is already set. Skip the install steps.
+
 Plan → implement → review → simplify → present, with gates between stages.
 
 ## Install
