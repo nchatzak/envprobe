@@ -68,6 +68,9 @@ them — score only the modules in your diff, not the whole repo:
 ./scripts/crap.sh cmd internal/probe
 ```
 
+Fragments that match nothing are an error, not an empty pass: `crap.sh` exits
+2 rather than reporting that there is nothing to simplify.
+
 crap4go deletes stale coverage and re-runs the suite itself every time, so
 its numbers are always current. It writes to `target/coverage/coverage.out`.
 

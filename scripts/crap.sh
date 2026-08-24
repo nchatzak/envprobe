@@ -7,14 +7,18 @@
 # whole suite, so it's too slow for the fast gate.
 #
 # Two modes:
-#   ./scripts/crap.sh baseline   snapshot current scores, always exit 0
+#   ./scripts/crap.sh baseline   snapshot current scores
 #   ./scripts/crap.sh            score and gate against that snapshot
 #
-# The gate prints a summary. The full crap4go table goes to .pipeline/crap.txt.
+# Both modes print a summary. The full crap4go table goes to .pipeline.
 #
 # The baseline is what makes a tight threshold usable on a real codebase.
 # Functions the diff made worse are REGRESSIONS and fail. Functions that were
 # already bad are PRE-EXISTING: reported for the simplifier, not blocking.
+#
+# Positional args and CRAP_FILTER are path fragments. Fragments that match
+# nothing at all exit 2. A fragment that matches nothing alongside one that
+# does is not detectable here and passes.
 #
 # Env:
 #   CRAP_THRESHOLD   default 10   fail above this
@@ -48,39 +52,42 @@ if ! command -v crap4go >/dev/null 2>&1; then
     echo "ERROR: crap4go not on PATH. Add $GOBIN to PATH." >&2; exit 2; }
 fi
 
+FILTERED=0
 ARGS=()
 [ -n "${CRAP_TEST_CMD:-}" ] && ARGS+=(--test-command "$CRAP_TEST_CMD")
 [ -n "${CRAP_WORKERS:-}" ]  && ARGS+=(--max-workers "$CRAP_WORKERS")
-if [ "$#" -gt 0 ]; then ARGS+=("$@")
+if [ "$#" -gt 0 ]; then ARGS+=("$@"); FILTERED=1
 elif [ -n "${CRAP_FILTER:-}" ]; then
   # shellcheck disable=SC2206
-  ARGS+=(${CRAP_FILTER})
+  ARGS+=(${CRAP_FILTER}); FILTERED=1
 fi
 
+# Baseline writes to a temp and moves it into place only after the summary
+# exits 0.
 OUT="$REPORT"
-[ "$MODE" = "baseline" ] && OUT="$BASELINE"
+[ "$MODE" = "baseline" ] && OUT="$BASELINE.tmp"
+
+crap_failed() {
+  cat "$OUT" >&2
+  echo "ERROR: crap4go failed" >&2
+  [ "$MODE" = "baseline" ] && rm -f "$OUT"
+  exit 2
+}
 
 # macOS ships bash 3.2, where "${arr[@]}" on an EMPTY array is an
 # unbound-variable error under `set -u`. ARGS is empty in the common case
 # (no test command, no workers, no filter), so this must be branched.
 if [ ${#ARGS[@]} -gt 0 ]; then
-  crap4go "${ARGS[@]}" > "$OUT" 2>&1 || {
-    cat "$OUT" >&2; echo "ERROR: crap4go failed" >&2; exit 2; }
+  crap4go "${ARGS[@]}" > "$OUT" 2>&1 || crap_failed
 else
-  crap4go > "$OUT" 2>&1 || {
-    cat "$OUT" >&2; echo "ERROR: crap4go failed" >&2; exit 2; }
-fi
-
-if [ "$MODE" = "baseline" ]; then
-  COUNT=$(awk '$NF ~ /^[0-9]+(\.[0-9]+)?$/' "$BASELINE" | wc -l | tr -d ' ')
-  echo "  baseline snapshot written: $COUNT scored functions"
-  exit 0
+  crap4go > "$OUT" 2>&1 || crap_failed
 fi
 
 # Report rows: Function Package CC Cov% CRAP  (neither name contains spaces)
-[ -f "$BASELINE" ] || : > "$BASELINE"
-
-awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" '
+#
+# Two files in, baseline then report. Baseline mode passes its snapshot as
+# both, so every function is known at its own score.
+SUMMARY='
   function isnum(x) { return x ~ /^[0-9]+(\.[0-9]+)?$/ }
 
   NR == FNR {                                   # baseline
@@ -115,13 +122,23 @@ awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" '
     }
   }
   END {
+    baseline = (mode == "baseline")
+
     if (n == 0 && na == 0) {
+      if (filtered) {
+        print "\n  ERROR: the given path fragments matched no scored functions." > "/dev/stderr"
+        print "  Nothing was scored. Fix the paths passed to crap.sh." > "/dev/stderr"
+        exit 2
+      }
       printf "\n  SKIP: no scored functions (full output: %s)\n", report
       exit 0
     }
-    printf "\n  scored: %d   average CRAP: %.1f   warn: >%s   fail: >%s\n",
+
+    printf "\n  %s: %d   average CRAP: %.1f   warn: >%s   fail: >%s\n",
+           baseline ? "baseline snapshot" : "scored",
            n, (n ? total/n : 0), w, t
     printf "  full table: %s\n", report
+
     if (na > 0) {
       printf "\n  %d N/A - unmeasured, not clean:\n", na
       printf "%s", nas
@@ -131,9 +148,14 @@ awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" '
       printf "%s", warns
     }
     if (pre > 0) {
-      printf "\n  PRE-EXISTING over threshold (not blocking; simplifier worklist):\n"
+      hdr = "PRE-EXISTING over threshold (not blocking; simplifier worklist):"
+      if (baseline) hdr = "already over threshold (the implementer is not held to these):"
+      printf "\n  %s\n", hdr
       printf "%s", pres
     }
+
+    if (baseline) exit 0
+
     if (reg > 0) {
       printf "\n  REGRESSIONS - this diff made these worse or added them:\n"
       printf "%s", regs
@@ -145,4 +167,27 @@ awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" '
     print "\n  no CRAP regressions in this diff"
     exit 0
   }
-' "$BASELINE" "$REPORT"
+'
+
+if [ "$MODE" = "baseline" ]; then
+  awk -v t="$THRESHOLD" -v w="$WARN" -v report="$BASELINE" \
+      -v mode=baseline -v filtered="$FILTERED" "$SUMMARY" "$OUT" "$OUT"
+  STATUS=$?
+  [ "$STATUS" -eq 0 ] || { rm -f "$OUT"; exit "$STATUS"; }
+  mv "$OUT" "$BASELINE"
+  exit 0
+fi
+
+# With no baseline, compare against a placeholder rather than creating
+# $BASELINE: only baseline mode writes that file, so an existence check on it
+# still means a snapshot was taken. The placeholder needs a record, because a
+# zero-length first file leaves NR == FNR true through the report and every
+# row is read as baseline.
+BASE_IN="$BASELINE"
+if [ ! -s "$BASELINE" ]; then
+  BASE_IN="$PIPE_DIR/crap-nobaseline.txt"
+  echo "CRAP baseline: none taken" > "$BASE_IN"
+fi
+
+awk -v t="$THRESHOLD" -v w="$WARN" -v report="$REPORT" \
+    -v mode=gate -v filtered="$FILTERED" "$SUMMARY" "$BASE_IN" "$REPORT"

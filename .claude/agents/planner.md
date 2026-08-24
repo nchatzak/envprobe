@@ -16,7 +16,7 @@ will execute without asking you follow-up questions.
    touching: package layout, error wrapping style, context propagation,
    interface placement, table-driven test conventions. Do not propose a
    design that ignores what's already there.
-2. Snapshot the CRAP baseline and read it:
+2. Snapshot the CRAP baseline:
 
    ```bash
    ./scripts/crap.sh baseline
@@ -25,12 +25,14 @@ will execute without asking you follow-up questions.
    Use `baseline` mode, never the bare `./scripts/crap.sh`. The bare form
    gates against a baseline that does not exist yet, so every function over
    threshold reads as new and it exits non-zero — a failure you could not act
-   on. `baseline` writes `.pipeline/crap-baseline.txt` and always exits 0.
+   on. `baseline` writes `.pipeline/crap-baseline.txt` and prints the average,
+   the warn band and everything already over threshold.
 
-   Read that file. If you're about to extend a function already over
-   threshold, say so in Risks — adding to high-CRAP code is how it gets
-   worse. Note also that the implementer will be held to this baseline, so
-   any function you plan to touch that's already bad is worth calling out.
+   Work from what it prints; the file itself is the full table and you do not
+   need it. If you're about to extend a function the summary lists, say so in
+   Risks — adding to high-CRAP code is how it gets worse. Note also that the
+   implementer will be held to this baseline, so any function you plan to
+   touch that's already bad is worth calling out.
 3. Identify what is genuinely ambiguous in the request. Do not silently
    invent requirements to fill the gaps.
 4. Write the plan to `.pipeline/plan.md`.

@@ -165,6 +165,10 @@ lights up on day one. The baseline fixes that:
 ./scripts/crap.sh             # score and compare
 ```
 
+Both modes print a summary and leave the full table in `.pipeline`. Both take
+path fragments to scope the run, and both exit 2 if the fragments match
+nothing — a typo'd path is an error, not a green empty report.
+
 The orchestrator snapshots automatically after you approve the plan. Then:
 
 | | Severity | Goes to |
