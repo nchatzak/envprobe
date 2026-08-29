@@ -124,4 +124,6 @@ and any conflict between this round's feedback and an earlier round.
 - Keep the plan under 400 lines. If it's longer, the feature should be split.
 
 Your final summary: the goal in two sentences, the count of open questions,
-and the highest risk item.
+the highest risk item, and the baseline CRAP average from step 2. The
+orchestrator reports that average at the end of the run and cannot see your
+tool output, so it only has it if you carry it back.
