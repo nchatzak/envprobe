@@ -1,60 +1,6 @@
 # Agent delivery pipeline (Go)
 
-> **This describes installing the pipeline into another Go repo.** In envprobe
-> it is already installed: `.claude/` and `scripts/` are tracked, and the
-> `CHECKS` array in `scripts/guard.sh` is already set. Skip the install steps.
-
 Plan → implement → review → simplify → present, with gates between stages.
-
-## Install
-
-Copy into your repo root and check it in:
-
-```
-.claude/agents/planner.md
-.claude/agents/implementer.md
-.claude/agents/reviewer.md
-.claude/agents/simplifier.md
-.claude/commands/ship.md
-.claude/settings.json
-scripts/guard.sh
-scripts/crap.sh
-```
-
-Then:
-
-```bash
-chmod +x scripts/guard.sh scripts/crap.sh
-echo ".pipeline/" >> .gitignore
-```
-
-Point the guard at your check scripts by editing the `CHECKS` array at the
-top of `guard.sh`. There is no auto-detection — an empty array is a setup
-error and guard exits 2 telling you to fill it in.
-
-For a one-off manual run, `CHECK_CMD` replaces the whole chain with a single
-command:
-
-```bash
-CHECK_CMD='./scripts/check.sh' ./scripts/guard.sh
-```
-
-`crap.sh` installs crap4go automatically on first run. To do it yourself:
-
-```bash
-go install github.com/unclebob/crap4go/cmd/crap4go@latest
-```
-
-crap4go runs the suite itself and writes to `target/coverage/coverage.out` —
-it won't reuse your check script's profile. If that double run bothers you,
-narrow it:
-
-```bash
-CRAP_TEST_CMD="go test ./internal/app" ./scripts/crap.sh
-```
-
-Restart Claude Code — a running session doesn't detect a `.claude/agents/`
-directory that didn't exist when it started.
 
 ## Run
 
@@ -237,8 +183,6 @@ CRAP_TEST_CMD="go test -tags appunit ./internal/app" ./scripts/crap.sh
 crap4go appends the coverprofile flag, or substitutes `{coverprofile}` if you
 include it. `--max-workers` controls parallelism (defaults to half your
 logical CPUs).
-
-Add `target/` to `.gitignore` alongside `.pipeline/`.
 
 ### What counts toward CC
 

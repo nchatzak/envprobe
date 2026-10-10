@@ -1,86 +1,22 @@
-# Integrating into an existing Go project
+# Running the pipeline
 
-> **This describes installing the pipeline into another Go repo.** In envprobe
-> it is already installed: `.claude/` and `scripts/` are tracked, and the
-> `CHECKS` array in `scripts/guard.sh` is already set. Skip the install steps.
+## 1. The check chain
 
-Assumes: a Go module in git, a working check script, and Claude Code
-installed.
-
----
-
-## 1. Copy the files
-
-Everything goes at your **repo root** — the directory holding `go.mod`. The
-downloaded bundle has a `claude-pipeline/` wrapper folder; copy its *contents*
-in, not the folder itself.
-
-```
-your-project/
-├── go.mod
-├── check.sh                    ← your existing script, untouched
-├── .claude/
-│   ├── settings.json           ← merge if you already have one
-│   ├── agents/
-│   │   ├── planner.md
-│   │   ├── implementer.md
-│   │   ├── reviewer.md
-│   │   └── simplifier.md
-│   └── commands/
-│       └── ship.md
-└── scripts/
-    ├── guard.sh
-    └── crap.sh
-```
-
-```bash
-./install.sh /path/to/your/repo     # does all of this for you
-```
-
-By hand — note the bundle ships `dot-claude/`, which must be renamed to
-`.claude/` in your repo. The bundle avoids the leading dot only so the folder
-is visible in Finder:
-
-```bash
-cp -r claude-pipeline/dot-claude /path/to/your/repo/.claude
-cp -r claude-pipeline/scripts    /path/to/your/repo/
-chmod +x /path/to/your/repo/scripts/*.sh
-```
-
-**If you already have `.claude/settings.json`**, merge rather than overwrite —
-you'd lose your existing config. The pipeline adds three keys: `skills`,
-`permissions.deny`, and `hooks`. If you already have hooks, append to the
-arrays; `SubagentStop` and `PostToolUse` can hold multiple entries.
-
-Check these in. They're project configuration, and the point is that your
-whole team gets the same gates.
-
-`pipeline-README.md` and `pipeline-INTEGRATION.md` are documentation, not
-runtime files — they live under `docs/` here, and can be discarded if you
-don't want them.
-
----
-
-## 2. Wire up your check scripts
-
-`guard.sh` does not replace your scripts — it runs them, then adds five
+`guard.sh` does not replace envprobe's scripts — it runs them, then adds five
 agent-specific checks on top.
 
-Edit the two arrays at the top of `guard.sh`. For a CLI app with unit checks
-plus binary-level scenario tests, the chain is:
+The chain is the two arrays at the top of `guard.sh`:
 
 ```bash
 CHECKS=(
-  "./scripts/check.sh"                  # fmt, vet, golangci, tests, coverage
-  "go build -o ./bin/app ./cmd/app"     # exit-codes.sh needs the binary
-  "./scripts/exit-codes.sh"             # scenario + exit-code validation
+  "./scripts/check.sh"        # fmt, vet, golangci, tests, coverage
+  "go build -o envprobe ."    # exit-codes.sh needs the binary
+  "./scripts/exit-codes.sh"   # scenario + exit-code validation
 )
 
 CHECKS_REVIEW_ONLY=(
 )
 ```
-
-Adjust the build line to your actual binary name and `cmd/` path.
 
 **Order matters and the chain is fail-fast.** It stops at the first failure
 and tells the agent which checks it never reached:
@@ -89,7 +25,7 @@ and tells the agent which checks it never reached:
 === [1/3] ./scripts/check.sh ===
   FAIL: ./scripts/check.sh
   Chain stopped. Remaining 2 check(s) not run:
-    - go build -o ./bin/app ./cmd/app
+    - go build -o envprobe .
     - ./scripts/exit-codes.sh
 ```
 
@@ -98,7 +34,7 @@ edits ago produces results that are worse than useless — they're
 confidently wrong, and the agent will chase them.
 
 The explicit build step matters for the same reason. `check.sh` compiles
-packages during `go test`, but that doesn't refresh `./bin/app`. Without the
+packages during `go test`, but that doesn't refresh `./envprobe`. Without the
 build entry, `exit-codes.sh` validates whatever binary happened to be lying
 around.
 
@@ -122,67 +58,36 @@ entry to fix, rather than reporting your code as broken.
 
 One wrinkle: the check reads the *first word* of the entry, so an inline env
 prefix (`CGO_ENABLED=0 go build ...`) looks like a missing executable. Wrap
-those: `bash -c 'CGO_ENABLED=0 go build -o ./bin/app ./cmd/app'`.
+those: `bash -c 'CGO_ENABLED=0 go build -o envprobe .'`.
 
 **Start every run from a clean tree.** Commit or stash first. Every gate
 diffs against `HEAD`, so uncommitted work gets attributed to the implementer
 — and the CRAP baseline would launder it into "pre-existing". `/ship` checks
 `git status --porcelain` and stops if the tree is dirty.
 
-Verify before going further:
-
-```bash
-./scripts/guard.sh
-```
-
-You want each check numbered `[n/N]` and passing, then the placeholder,
-erosion, and secret sections.
-
-Two things to confirm about your own scripts:
-
-- **They exit non-zero on failure.** If `exit-codes.sh` prints a mismatch but
-  exits 0, the mandatory gate is decorative and the implementer can hand back
-  a binary with wrong exit codes.
-- **Add your build output to `.gitignore`** (`bin/`). Untracked build
-  artifacts otherwise show up in `git status` and muddy the review.
-
 `CHECK_CMD='./scripts/check.sh' ./scripts/guard.sh` overrides the whole chain
 for a quick manual run.
 
 ---
 
-## 3. Install crap4go
+## 2. crap4go
 
-```bash
-go install github.com/unclebob/crap4go/cmd/crap4go@latest
-```
-
-`crap.sh` installs it automatically on first run if missing, but doing it now
-surfaces PATH problems while you're paying attention.
-
-Then see your numbers:
+`crap.sh` installs crap4go on first run if it is missing. To see the
+numbers:
 
 ```bash
 ./scripts/crap.sh baseline
 cat .pipeline/crap-baseline.txt
 ```
 
-**Expect this to be ugly on an existing codebase.** That's fine and it does
-not block anything — the baseline mechanism means only functions *this diff*
-makes worse will ever fail a review. Legacy debt is reported every run and
-routed to the simplifier, never to the implementer.
-
-If the numbers are catastrophic and you want a gentler start, raise the
-threshold and walk it down over time:
-
-```bash
-# .claude/settings.json or your shell profile
-CRAP_THRESHOLD=25 CRAP_WARN=15
-```
+Functions already over threshold do not block anything — the baseline
+mechanism means only functions *this diff* makes worse will ever fail a
+review. Legacy debt is reported every run and routed to the simplifier, never
+to the implementer.
 
 ---
 
-## 3b. CRAP and your `cmd/` package
+## 2b. CRAP and the `cmd/` package
 
 Scenario coverage is invisible to crap4go — `exit-codes.sh` exercises the
 built binary, crap4go reads a `go test` profile. So `cmd/` code shows near-0%
@@ -221,45 +126,7 @@ dispatch first.
 
 ---
 
-## 4. gitignore
-
-```bash
-printf '.pipeline/\ntarget/\nbin/\n' >> .gitignore
-```
-
-`.pipeline/` is pipeline working state. `target/` is where crap4go writes
-coverage.
-
----
-
-## 5. First run
-
-Pick something small and boring for the first feature — a validation
-function, a small endpoint. You are testing the pipeline, not the feature.
-
-```
-/ship add a MaxBodyBytes limit to the upload handler
-```
-
-Watch for four things:
-
-1. **Does the planner ask real questions?** An empty "Open questions" list on
-   a genuine feature usually means it invented requirements instead of
-   surfacing ambiguity.
-2. **Does the approval gate actually stop?** It should present the plan and
-   wait. If it barrels into implementation, the command file isn't loading —
-   restart Claude Code.
-3. **Does the reviewer find anything?** A clean first-cycle pass every time
-   means the reviewer prompt is too soft for your codebase.
-4. **Is the "Not done" section ever non-empty?** Real work has loose ends. An
-   always-empty section means it's being papered over.
-
-If a subagent doesn't exist, restart — a running session won't pick up a
-`.claude/agents/` directory created after it started.
-
----
-
-## 5b. Revising a plan
+## 3. Revising a plan
 
 You'll reject the first plan often, and that's the cheapest place to spend
 your attention.
@@ -297,7 +164,7 @@ shape to it.
 
 ---
 
-## 6. Accepting a finished feature
+## 4. Accepting a finished feature
 
 **The work is uncommitted in your normal working tree.** Not a branch, not a
 worktree, not a patch file — the files are simply edited in place, exactly as
@@ -351,7 +218,7 @@ ceremony. Without it, `git diff` in your own checkout is the whole workflow.
 
 ---
 
-## 7. If a run stops partway
+## 5. If a run stops partway
 
 Context limits, a crash, you closing the laptop, or an escalation you didn't
 answer — any of these leave a half-finished run.
@@ -379,28 +246,6 @@ silently disables the CRAP gate for that feature.
 
 To throw one away deliberately, just tell it to abandon when asked. The old
 files move to `.pipeline/prev/` rather than being deleted.
-
----
-
-## 8. Adoption path
-
-Don't turn everything on at once.
-
-**Week 1 — planning only.** Run `/ship`, approve or reject plans, then stop
-and implement by hand. You'll learn fast whether the planner understands your
-codebase, and it costs almost nothing to find out.
-
-**Week 2 — add the gates.** Let it implement. Keep the retry cap at 3 and
-watch what happens when the reviewer pushes back. This is where you find out
-whether the guard is catching real problems or generating noise.
-
-**Week 3 — tune the reviewer.** Add findings it missed to `reviewer.md` as
-explicit hunt items. This file should drift toward your codebase's actual
-failure modes — the ones you keep catching in human review are exactly what
-belongs there.
-
-**Later — CRAP tightening.** Once regressions are consistently zero, lower
-`CRAP_THRESHOLD` and let the simplifier start working through legacy debt.
 
 ---
 
@@ -472,7 +317,6 @@ skill in any case — none of the four grants a `Skill` tool.
 
 | Symptom | Cause |
 |---|---|
-| "no checks configured" | `CHECKS` array is empty — edit `guard.sh` |
 | "not executable or not on PATH" | a `CHECKS` entry is wrong; exit 2 means setup, not code |
 | `exit-codes.sh` fails on correct code | stale binary — confirm the build step precedes it in `CHECKS` |
 | Subagent not found | session started before `.claude/agents/` existed — restart |
