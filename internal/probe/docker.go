@@ -17,18 +17,22 @@ func (c dockerDaemonCheck) Run(ctx context.Context) Result {
 	cmd := exec.CommandContext(ctx, "docker", "info")
 	err := cmd.Run()
 
-	var problem string
-	if err != nil {
-		if isType[*exec.Error](err) {
-			problem = problemDockerNotOnPath
-		} else {
-			problem = problemDaemonNotResponding
-		}
-	}
 	return Result{
 		Name:    c.name,
 		Found:   err == nil,
-		Problem: problem,
+		Problem: dockerProblem(err),
+	}
+}
+
+// dockerProblem names the cause docker info failed. A running daemon names none.
+func dockerProblem(err error) string {
+	switch {
+	case err == nil:
+		return ""
+	case isType[*exec.Error](err):
+		return problemDockerNotOnPath
+	default:
+		return problemDaemonNotResponding
 	}
 }
 

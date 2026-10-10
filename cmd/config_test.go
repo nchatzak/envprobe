@@ -209,3 +209,40 @@ func readFile(t *testing.T, path string) string {
 	}
 	return string(b)
 }
+
+func TestConfigValidateUnknownTopLevelKey(t *testing.T) {
+	path := tempPath(t)
+	writeFile(t, path, "chekcs:\n  - name: x\n    type: binary\n")
+
+	stdout, stderr, err := execute(t, "config", "validate", path)
+	if !errors.Is(err, errUnknownTopLevelKey) {
+		t.Fatalf("config validate error = %v, want errUnknownTopLevelKey", err)
+	}
+	if !strings.Contains(err.Error(), `"chekcs"`) {
+		t.Errorf("error = %q, want it to name the key", err)
+	}
+	if want := "using " + path + "\n"; !strings.Contains(stderr, want) {
+		t.Errorf("stderr = %q, want it to contain %q", stderr, want)
+	}
+	assertNoUsage(t, "config validate", stdout, stderr)
+}
+
+// What config init writes, doctor has to accept. probe's own example test
+// cannot reach this rule -- it belongs to cmd, and probe must not import cmd --
+// so without this a top-level key added to example.yaml would ship a file that
+// config init writes and doctor refuses.
+func TestConfigInitOutputValidates(t *testing.T) {
+	path := tempPath(t)
+
+	if _, _, err := execute(t, "config", "init", "-o", path); err != nil {
+		t.Fatalf("config init: %v", err)
+	}
+
+	stdout, _, err := execute(t, "config", "validate", path)
+	if err != nil {
+		t.Fatalf("config validate: %v", err)
+	}
+	if !strings.Contains(stdout, "checks OK") {
+		t.Errorf("expected a summary, got %q", stdout)
+	}
+}

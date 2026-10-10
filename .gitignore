@@ -39,3 +39,11 @@ Desktop.ini
 
 # Tool specific files
 envprobe.yaml
+
+# AI pipeline
+.pipeline/
+target/
+
+# Claude Code local overrides
+.claude/settings.local.json
+CLAUDE.local.md

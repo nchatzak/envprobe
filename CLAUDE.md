@@ -8,7 +8,13 @@ file names.
 ```bash
 ./scripts/check.sh         # gofmt, build, vet, test -race, lint -- run before committing
 ./scripts/exit-codes.sh    # exit-code contract; needs a built binary, not in CI
+./scripts/guard.sh         # /ship gate: the checks above plus agent-specific ones
+./scripts/crap.sh          # /ship gate: CRAP score against a baseline, at review
 ```
+
+`guard.sh` and `crap.sh` belong to the `/ship` pipeline, not to the commit
+checks. `guard.sh` fails while its own file is uncommitted, so commit an edit
+to it before the next run.
 
 `check.sh` runs what CI runs. Reach for the individual `go` commands only to
 iterate on one package.

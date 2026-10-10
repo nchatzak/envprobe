@@ -44,9 +44,13 @@ invalid keys: hint`, an index where a `CheckError` would render
 nothing typed to re-render from; a decode per entry is what would make the
 index ours to print.
 
-The root is not covered at all. A misspelled `checks:` parses as a file with no
-checks in it, so the run reports nothing configured rather than a typo -- exit
-0 interactively, and only the zero-checks rule makes `--ci` fail.
+The root is covered too, by a rule of its own rather than a decode: the only
+top-level key a config may carry is `checks:`, and it must be there. Anything
+else is `errUnknownTopLevelKey` naming the key, an absent one is
+`errChecksKeyMissing`, and both exit 2 before the list is read -- a file whose
+root we do not recognise may not hold the checks its author wrote. `checks: []`
+and `checks:` with nothing under it stay the deliberate way to check nothing.
+The rule lives in `cmd`, since it is about the shape of a config *file*.
 
 ## The check registry is closed
 
@@ -92,7 +96,9 @@ to cobra as values.
 For the same reason there are no package-level `var xCmd` and no `init()`.
 `newRootCmd` / `newDoctorCmd` / `newConfigCmd` assemble the tree per
 invocation, so tests get a fresh command with fresh flag values, and `doctor`
-can be built with an injected loader.
+can be built with an injected loader. Flag values live in an options struct
+local to each constructor, bound with `BoolVar`/`StringVar`, so a fresh command
+means fresh values structurally rather than by convention.
 
 ## Three config subcommands, one job each
 

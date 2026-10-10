@@ -137,8 +137,11 @@ error that names the key, so a typo fails loudly instead of being ignored. A
 key beside `with` is caught before any check is built, so it is reported on its
 own — fix it and the next run reports whatever is wrong inside `with`.
 
-The `checks:` key itself is not. A file that misspells it parses as a file with
-no checks in it, so `doctor` warns and exits 0 while `--ci` exits 2.
+The top level is validated as well: `checks:` is the only key allowed there,
+and it has to be present. A file that misspells it, carries a stray key beside
+it, or is empty is one envprobe refuses to run — exit 2 naming what is wrong,
+rather than a run that reports nothing configured. An empty `checks: []` list
+is still a valid way to say there is nothing to check.
 
 The five types:
 

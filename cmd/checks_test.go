@@ -209,3 +209,121 @@ func TestConfiguredChecksUnknownType(t *testing.T) {
 		t.Error("configuredChecks() path = \"\", want the file that failed to build")
 	}
 }
+
+// A top-level key that is not checks: the file may define something other than
+// what its author meant, so nothing under it is trusted. The assertions are the
+// key names, which is what a reader has to act on; the sentinel carries the
+// rest.
+func TestConfiguredChecksUnknownTopLevelKey(t *testing.T) {
+	tests := []struct {
+		name string
+		// config is written to the working directory isolate creates.
+		config string
+		// named substrings, in the order the error must report them.
+		named []string
+		// substrings the error must not contain.
+		absent []string
+	}{
+		{
+			name:   "misspelled checks",
+			config: "chekcs:\n  - name: alpha\n    type: binary\n",
+			named:  []string{`"chekcs"`},
+		},
+		{
+			name:   "stray key beside checks",
+			config: "checks: []\nverbose: true\n",
+			named:  []string{`"verbose"`},
+			absent: []string{`"checks"`},
+		},
+		{
+			name:   "two stray keys, sorted",
+			config: "checks: []\nzebra: 1\nalpha: 2\n",
+			named:  []string{`"alpha"`, `"zebra"`},
+		},
+		{
+			name:   "nested key names its root",
+			config: "checks: []\ndefaults:\n  timeout: 5\n",
+			named:  []string{`"defaults"`},
+			absent: []string{"timeout"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isolate(t)
+			writeFile(t, testConfigFileName, tt.config)
+
+			checks, path, err := configuredChecks()
+			if !errors.Is(err, errUnknownTopLevelKey) {
+				t.Fatalf("configuredChecks() = %#v, %v; want errUnknownTopLevelKey", checks, err)
+			}
+
+			// A file was read, so the caller can still name it.
+			if path == "" {
+				t.Error("configuredChecks() path = \"\", want the file that was rejected")
+			}
+
+			assertNamedInOrder(t, err.Error(), tt.named)
+			for _, absent := range tt.absent {
+				if strings.Contains(err.Error(), absent) {
+					t.Errorf("error = %q, want it not to contain %q", err, absent)
+				}
+			}
+		})
+	}
+}
+
+// assertNamedInOrder checks that every substring appears, and in this order.
+// The order is the assertion that AllKeys' map order was sorted away.
+func assertNamedInOrder(t *testing.T, got string, want []string) {
+	t.Helper()
+	at := 0
+	for _, key := range want {
+		i := strings.Index(got[at:], key)
+		if i < 0 {
+			t.Errorf("error = %q, want %q after position %d", got, key, at)
+			return
+		}
+		at += i + len(key)
+	}
+}
+
+// No checks key at all reports the same way a misspelled one does: a file that
+// says nothing about what to check is not a machine that passed.
+func TestConfiguredChecksNoChecksKey(t *testing.T) {
+	tests := []struct {
+		name   string
+		config string
+	}{
+		{"empty file", ""},
+		{"comments only", "# nothing here yet\n# not even a key\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isolate(t)
+			writeFile(t, testConfigFileName, tt.config)
+
+			checks, _, err := configuredChecks()
+			if !errors.Is(err, errChecksKeyMissing) {
+				t.Fatalf("configuredChecks() = %#v, %v; want errChecksKeyMissing", checks, err)
+			}
+		})
+	}
+}
+
+// The key is there with nothing under it, which is the same deliberate choice
+// as an empty list. This is also what catches a viper upgrade that stops
+// reporting a null-valued key from AllKeys.
+func TestConfiguredChecksNullChecksKey(t *testing.T) {
+	isolate(t)
+	writeFile(t, testConfigFileName, "checks:\n")
+
+	checks, _, err := configuredChecks()
+	if err != nil {
+		t.Fatalf("configuredChecks() error = %v", err)
+	}
+	if len(checks) != 0 {
+		t.Errorf("configuredChecks() = %#v, want no checks", checks)
+	}
+}

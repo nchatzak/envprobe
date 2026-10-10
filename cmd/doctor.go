@@ -17,7 +17,15 @@ var errNoChecks = errors.New("no checks configured, so nothing was verified")
 // errChecksFailed means the checks ran and some reported a problem.
 var errChecksFailed = errors.New("checks failed")
 
+// doctorOptions holds the parsed values of doctor's flags.
+type doctorOptions struct {
+	json bool
+	ci   bool
+}
+
 func newDoctorCmd(load checkLoader) *cobra.Command {
+	var opts doctorOptions
+
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Run the configured environment checks",
@@ -33,15 +41,15 @@ Exit codes:
      config it could not build, or a bad flag`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cmd.SilenceUsage = true
-			return runDoctorCmd(cmd, load)
+			return runDoctorCmd(cmd, load, opts)
 		},
 	}
-	cmd.Flags().Bool("json", false, "output results as JSON")
-	cmd.Flags().Bool("ci", false, "exit 1 if any check fails, 2 if none are configured")
+	cmd.Flags().BoolVar(&opts.json, "json", false, "output results as JSON")
+	cmd.Flags().BoolVar(&opts.ci, "ci", false, "exit 1 if any check fails, 2 if none are configured")
 	return cmd
 }
 
-func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
+func runDoctorCmd(cmd *cobra.Command, load checkLoader, opts doctorOptions) error {
 	checks, source, err := load()
 
 	// Before the error check, so a config that failed to build still names the
@@ -52,15 +60,13 @@ func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
 		return err
 	}
 
-	ci, _ := cmd.Flags().GetBool("ci")
-
 	// An empty checks: list is deliberate config, so interactively it is a
 	// warning and exit 0 — but the table renderer emits nothing for zero
 	// results, so without this a run that checked nothing looks like a crash.
 	// Under --ci it is a failure instead, reported here rather than after the
 	// render: there is nothing to run and nothing to show.
 	if len(checks) == 0 {
-		if ci {
+		if opts.ci {
 			return errNoChecks
 		}
 		fmt.Fprintln(cmd.ErrOrStderr(), "warning: no checks configured")
@@ -68,9 +74,8 @@ func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
 
 	results := probe.RunAll(cmd.Context(), checks)
 
-	jsonFlag, _ := cmd.Flags().GetBool("json")
 	render := probe.Render
-	if jsonFlag {
+	if opts.json {
 		render = probe.RenderJSON
 	}
 
@@ -82,7 +87,7 @@ func runDoctorCmd(cmd *cobra.Command, load checkLoader) error {
 
 	// After render on purpose: --ci --json still emits its results before the
 	// non-zero exit.
-	if ci && probe.CountFailed(results) > 0 {
+	if opts.ci && probe.CountFailed(results) > 0 {
 		return errChecksFailed
 	}
 	return nil
